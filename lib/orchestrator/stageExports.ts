@@ -1,12 +1,10 @@
-/**
- * Re-exports pipeline stages for tests, debugging, or partial execution.
- * Full production flow: `runPipeline` from `./runPipeline`.
- */
-
+export { runPipeline, PipelineStageError } from "./runPipeline";
 export { analyzeHypothesis } from "@/lib/pipeline/analyzeHypothesis";
 export { literatureQC } from "@/lib/pipeline/literatureQC";
 export { generateProtocol } from "@/lib/pipeline/generateProtocol";
-export { generateMaterials } from "@/lib/pipeline/generateMaterials";
+export { extractMaterialsFromProtocol } from "@/lib/pipeline/extractMaterialsFromProtocol";
+export { researchMaterials } from "@/lib/pipeline/researchMaterials";
 export { generateCost } from "@/lib/pipeline/generateCost";
 export { generateTimeline } from "@/lib/pipeline/generateTimeline";
+export { estimateStaffing } from "@/lib/pipeline/estimateStaffing";
 export { generateValidation } from "@/lib/pipeline/generateValidation";

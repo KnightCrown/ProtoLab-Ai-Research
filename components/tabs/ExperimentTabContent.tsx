@@ -163,10 +163,38 @@ export function ExperimentTabContent({ activeTab, results }: ExperimentTabConten
           />
           {results.totalCost ? (
             <p className="mt-4 text-right text-sm font-semibold text-gray-900">
-              Total (from model): {results.totalCost}
+              Est. total: {results.totalCost}
+            </p>
+          ) : null}
+          {results.costRange ? (
+            <p className="mt-1 text-right text-sm text-gray-600">
+              Range: {results.costRange.min} — {results.costRange.max}
+              {results.costRange.note ? ` (${results.costRange.note})` : ""}
             </p>
           ) : null}
         </Card>
+        {results.materialsDetail && results.materialsDetail.length > 0 ? (
+          <Card title="Sourcing (Tavily-backed)">
+            <ul className="space-y-3 text-sm text-gray-700">
+              {results.materialsDetail.map((m) => (
+                <li key={m.name + m.sourceUrl} className="border-b border-gray-100 pb-2 last:border-0">
+                  <p className="font-medium text-gray-900">{m.productName || m.name}</p>
+                  <p className="text-xs text-gray-500">{m.spec}</p>
+                  <p className="text-xs">Supplier: {m.supplier}</p>
+                  <p className="text-xs">Price: {m.price}</p>
+                  <a
+                    href={m.sourceUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs text-blue-700 underline"
+                  >
+                    Source
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        ) : null}
         {results.costLineItems && results.costLineItems.length > 0 ? (
           <Card title="Cost breakdown">
             <ul className="space-y-2 text-sm text-gray-700">
@@ -194,41 +222,80 @@ export function ExperimentTabContent({ activeTab, results }: ExperimentTabConten
 
   if (activeTab === "timeline") {
     const lines = results.timeline ?? [];
+    const st = results.stepTimelines ?? [];
+    const sp = results.staffingPlan;
     return (
-      <section className="grid gap-4 md:grid-cols-2">
-        <Card title="Timeline (phases)">
-          {lines.length === 0 ? (
-            <p className="text-sm text-gray-600">No timeline data.</p>
-          ) : (
+      <div className="space-y-4">
+        <section className="grid gap-4 md:grid-cols-2">
+          <Card title="Phased timeline">
+            {lines.length === 0 ? (
+              <p className="text-sm text-gray-600">No timeline data.</p>
+            ) : (
+              <ul className="space-y-2 text-sm text-gray-700">
+                {lines.map((entry) => (
+                  <li key={entry} className="rounded-lg bg-gray-50 px-3 py-2">
+                    {entry}
+                  </li>
+                ))}
+              </ul>
+            )}
+            {results.timelineTotalDuration ? (
+              <p className="mt-3 text-sm font-medium text-gray-900">
+                Total: {results.timelineTotalDuration}
+              </p>
+            ) : null}
+            {results.timelineWebNote ? (
+              <p className="mt-2 text-xs text-gray-500">Web hint: {results.timelineWebNote}</p>
+            ) : null}
+          </Card>
+          <Card title="Dependencies">
+            {results.timelineDependencies && results.timelineDependencies.length > 0 ? (
+              <ul className="list-disc pl-5 text-sm text-gray-700">
+                {results.timelineDependencies.map((d) => (
+                  <li key={d}>{d}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-gray-600">No dependency list.</p>
+            )}
+          </Card>
+        </section>
+        {st.length > 0 ? (
+          <Card title="Per-step schedule">
             <ul className="space-y-2 text-sm text-gray-700">
-              {lines.map((entry) => (
-                <li key={entry} className="rounded-lg bg-gray-50 px-3 py-2">
-                  {entry}
+              {st.map((s) => (
+                <li
+                  key={s.step_number}
+                  className="flex flex-wrap items-baseline justify-between gap-2 rounded-lg border border-gray-100 px-3 py-2"
+                >
+                  <span className="font-medium text-gray-900">
+                    {s.step_number}. {s.type}
+                  </span>
+                  <span className="text-gray-500">{s.estimated_duration}</span>
+                  <p className="w-full text-xs text-gray-600">{s.step}</p>
                 </li>
               ))}
             </ul>
-          )}
-          {results.timelineTotalDuration ? (
-            <p className="mt-3 text-sm font-medium text-gray-900">
-              Total duration: {results.timelineTotalDuration}
+          </Card>
+        ) : null}
+        {sp ? (
+          <Card title="Staffing (heuristic)">
+            <p className="text-sm text-gray-700">
+              <span className="font-medium">Headcount (planning):</span> {sp.total_people} people
             </p>
-          ) : null}
-        </Card>
-        <Card title="Dependencies & staffing">
-          {results.timelineDependencies && results.timelineDependencies.length > 0 ? (
-            <ul className="list-disc pl-5 text-sm text-gray-700">
-              {results.timelineDependencies.map((d) => (
-                <li key={d}>{d}</li>
+            <p className="mt-2 text-sm text-gray-700">
+              <span className="font-medium">Roles:</span> {sp.roles.join(", ")}
+            </p>
+            <ul className="mt-2 list-disc pl-5 text-sm text-gray-700">
+              {Object.entries(sp.hours_per_role).map(([role, h]) => (
+                <li key={role}>
+                  {role}: {h}h
+                </li>
               ))}
             </ul>
-          ) : (
-            <p className="text-sm text-gray-600">
-              Dependencies appear here when the pipeline provides them. Staffing is derived from
-              phase workload in future versions.
-            </p>
-          )}
-        </Card>
-      </section>
+          </Card>
+        ) : null}
+      </div>
     );
   }
 

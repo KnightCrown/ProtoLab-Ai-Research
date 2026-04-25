@@ -18,7 +18,6 @@ export type LiteratureNovelty = "not found" | "similar work exists" | "exact mat
 export type LiteratureQC = {
   novelty: LiteratureNovelty;
   references: LiteratureReference[];
-  /** Model justification vs search snippets (optional but shown in UI when present) */
   reasoning?: string;
 };
 
@@ -37,11 +36,20 @@ export type ProtocolStep = {
   output: string;
 };
 
-export type MaterialItem = {
+/** Raw extraction from protocol text (stage: extractMaterialsFromProtocol) */
+export type ExtractedMaterial = {
   name: string;
+  specification: string;
+};
+
+/** After Tavily + parsing (stage: researchMaterials) */
+export type ResearchedMaterial = {
+  name: string;
+  product_name: string;
   supplier: string;
-  estimated_cost: string;
-  quantity: string;
+  price_estimate: string;
+  source_url: string;
+  specification: string;
 };
 
 export type CostLineItem = {
@@ -52,7 +60,22 @@ export type CostLineItem = {
 export type CostEstimate = {
   line_items: CostLineItem[];
   total_cost: string;
+  cost_range: { min: string; max: string; note?: string };
   cost_drivers: string[];
+};
+
+export type TimelineStepType =
+  | "preparation"
+  | "incubation"
+  | "execution"
+  | "measurement"
+  | "analysis";
+
+export type StepTimeline = {
+  step_number: number;
+  step: string;
+  estimated_duration: string;
+  type: TimelineStepType;
 };
 
 export type TimelinePhase = {
@@ -62,9 +85,17 @@ export type TimelinePhase = {
 };
 
 export type TimelinePlan = {
+  steps_timeline: StepTimeline[];
   phases: TimelinePhase[];
   total_duration: string;
   dependencies: string[];
+  web_duration_note?: string;
+};
+
+export type StaffingPlan = {
+  roles: string[];
+  total_people: number;
+  hours_per_role: Record<string, number>;
 };
 
 export type ValidationPlan = {
@@ -78,9 +109,12 @@ export type PipelineResult = {
   hypothesis_analysis: HypothesisAnalysis;
   literature_qc: LiteratureQC;
   protocol: ProtocolStep[];
-  materials: MaterialItem[];
+  materials_extracted: ExtractedMaterial[];
+  /** Grounded in Tavily snippets; used for cost */
+  materials: ResearchedMaterial[];
   cost_estimate: CostEstimate;
   timeline: TimelinePlan;
+  staffing: StaffingPlan;
   validation: ValidationPlan;
 };
 

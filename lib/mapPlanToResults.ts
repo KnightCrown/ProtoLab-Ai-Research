@@ -9,11 +9,22 @@ function litRefsToOverviewRefs(
   return refs.map((r) => ({ title: r.title, url: r.url }));
 }
 
-function mapMaterials(m: PipelineResult["materials"]): MaterialRow[] {
+function mapMaterialsForTable(m: PipelineResult["materials"]): MaterialRow[] {
   return m.map((x) => ({
-    item: `${x.name} (${x.quantity})`,
+    item: x.name,
     supplier: x.supplier,
-    cost: x.estimated_cost,
+    cost: x.price_estimate,
+  }));
+}
+
+function mapMaterialsDetail(m: PipelineResult["materials"]): ExperimentResults["materialsDetail"] {
+  return m.map((x) => ({
+    name: x.name,
+    productName: x.product_name,
+    supplier: x.supplier,
+    price: x.price_estimate,
+    sourceUrl: x.source_url,
+    spec: x.specification,
   }));
 }
 
@@ -31,15 +42,14 @@ export function mapPlanToResults(plan: PipelineResult): ExperimentResults {
   const refList = litRefsToOverviewRefs(l.references);
   const summary = [
     l.reasoning,
-    h.measurement_method
-      ? `**Measurement (primary):** ${h.measurement_method}`
-      : null,
-    h.success_criteria
-      ? `**Success criteria:** ${h.success_criteria}`
-      : null,
+    h.measurement_method ? `**Measurement (primary):** ${h.measurement_method}` : null,
+    h.success_criteria ? `**Success criteria:** ${h.success_criteria}` : null,
   ]
     .filter((x) => x && String(x).trim())
     .join("\n\n");
+
+  const t = plan.timeline;
+  const staff = plan.staffing;
 
   return {
     overview: {
@@ -53,15 +63,21 @@ export function mapPlanToResults(plan: PipelineResult): ExperimentResults {
     },
     protocolStructured: plan.protocol,
     protocolSteps: plan.protocol.map(formatProtocolStepLine),
-    materials: mapMaterials(plan.materials),
+    materials: mapMaterialsForTable(plan.materials),
+    materialsDetail: mapMaterialsDetail(plan.materials),
     totalCost: plan.cost_estimate.total_cost,
+    costRange: plan.cost_estimate.cost_range,
     costLineItems: plan.cost_estimate.line_items,
     costDrivers: plan.cost_estimate.cost_drivers,
-    timeline: plan.timeline.phases.map(
+    timeline: t.phases.map(
       (p) => `${p.name} (${p.duration}) — ${p.deliverables.join("; ")}`
     ),
-    timelineTotalDuration: plan.timeline.total_duration,
-    timelineDependencies: plan.timeline.dependencies,
+    stepTimelines: t.steps_timeline,
+    timelineTotalDuration: t.total_duration,
+    timelineDependencies: t.dependencies,
+    timelineWebNote: t.web_duration_note,
     validation: plan.validation,
+    staffingPlan: staff,
+    staffing: Object.entries(staff.hours_per_role).map(([role, hours]) => ({ role, hours })),
   };
 }

@@ -1,12 +1,14 @@
 import OpenAI from "openai";
 import { analyzeHypothesis } from "@/lib/pipeline/analyzeHypothesis";
+import { extractMaterialsFromProtocol } from "@/lib/pipeline/extractMaterialsFromProtocol";
 import { generateCost } from "@/lib/pipeline/generateCost";
-import { generateMaterials } from "@/lib/pipeline/generateMaterials";
 import { generateProtocol } from "@/lib/pipeline/generateProtocol";
 import { generateTimeline } from "@/lib/pipeline/generateTimeline";
 import { generateValidation } from "@/lib/pipeline/generateValidation";
+import { estimateStaffing } from "@/lib/pipeline/estimateStaffing";
 import { literatureQC } from "@/lib/pipeline/literatureQC";
 import { loadProtocolRules } from "@/lib/pipeline/loadProtocolRules";
+import { researchMaterials } from "@/lib/pipeline/researchMaterials";
 import type { PipelineLogFn, PipelineResult } from "@/lib/pipeline/types";
 
 export class PipelineStageError extends Error {
@@ -24,7 +26,6 @@ export type RunPipelineOptions = {
   openaiApiKey: string;
   tavilyApiKey: string;
   hypothesis: string;
-  /** default: console logger */
   log?: PipelineLogFn;
 };
 
@@ -62,22 +63,22 @@ export async function runPipeline(opts: RunPipelineOptions): Promise<PipelineRes
       rules,
       log
     );
-    const materials = await generateMaterials(
+    const materials_extracted = await extractMaterialsFromProtocol(openai, protocol, log);
+    const materials = await researchMaterials(
       openai,
-      hypothesis,
-      hypothesis_analysis,
-      protocol,
+      opts.tavilyApiKey,
+      materials_extracted,
       log
     );
     const cost_estimate = await generateCost(openai, materials, log);
     const timeline = await generateTimeline(
       openai,
+      opts.tavilyApiKey,
       hypothesis,
-      hypothesis_analysis,
       protocol,
-      materials,
       log
     );
+    const staffing = estimateStaffing(protocol, timeline, log);
     const validation = await generateValidation(
       openai,
       hypothesis,
@@ -90,9 +91,11 @@ export async function runPipeline(opts: RunPipelineOptions): Promise<PipelineRes
       hypothesis_analysis,
       literature_qc,
       protocol,
+      materials_extracted,
       materials,
       cost_estimate,
       timeline,
+      staffing,
       validation,
     };
   } catch (e) {
