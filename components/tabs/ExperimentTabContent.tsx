@@ -22,10 +22,18 @@ function NoResultsPanel() {
     <div className="rounded-xl border border-dashed border-gray-300 bg-white p-10 text-center shadow-sm">
       <p className="text-sm font-medium text-gray-900">No plan generated yet</p>
       <p className="mt-1 text-sm text-gray-500">
-        Click <span className="font-medium">Generate Experiment Plan</span> to fill this tab with
-        mock results.
+        Click <span className="font-medium">Generate Experiment Plan</span> to run analysis and
+        fill this tab.
       </p>
     </div>
+  );
+}
+
+function V03Placeholder({ title, body }: { title: string; body: string }) {
+  return (
+    <Card title={title}>
+      <p className="text-sm text-gray-600">{body}</p>
+    </Card>
   );
 }
 
@@ -40,15 +48,37 @@ export function ExperimentTabContent({ activeTab, results }: ExperimentTabConten
   }
 
   if (activeTab === "overview") {
+    const refs = results.overview.references ?? [];
     return (
-      <section className="grid gap-4 md:grid-cols-2">
-        <Card title="Novelty Status">
-          <p className="text-lg font-semibold text-gray-900">{results.overview.noveltyStatus}</p>
-        </Card>
-        <Card title="Summary">
-          <p className="text-sm leading-6 text-gray-700">{results.overview.summary}</p>
-        </Card>
-      </section>
+      <div className="space-y-4">
+        <section className="grid gap-4 md:grid-cols-2">
+          <Card title="Novelty Status">
+            <p className="text-lg font-semibold text-gray-900">{results.overview.noveltyStatus}</p>
+          </Card>
+          <Card title="Reasoning">
+            <p className="text-sm leading-6 text-gray-700">{results.overview.summary}</p>
+          </Card>
+        </section>
+        {refs.length > 0 ? (
+          <Card title="References">
+            <ul className="space-y-2 text-sm text-gray-700">
+              {refs.map((r) => (
+                <li key={r.url}>
+                  <a
+                    href={r.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="font-medium text-gray-900 underline decoration-gray-300 hover:decoration-gray-500"
+                  >
+                    {r.title}
+                  </a>
+                  <p className="mt-0.5 break-all text-xs text-gray-500">{r.url}</p>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        ) : null}
+      </div>
     );
   }
 
@@ -70,6 +100,14 @@ export function ExperimentTabContent({ activeTab, results }: ExperimentTabConten
   }
 
   if (activeTab === "materials") {
+    if (results.materials == null || results.totalCost == null) {
+      return (
+        <V03Placeholder
+          title="Materials & Cost"
+          body="Materials, suppliers, and cost tables are not generated in v0.3. This will come in a later version."
+        />
+      );
+    }
     return (
       <Card title="Materials & Cost">
         <DataTable
@@ -88,6 +126,14 @@ export function ExperimentTabContent({ activeTab, results }: ExperimentTabConten
   }
 
   if (activeTab === "timeline") {
+    if (results.timeline == null || results.staffing == null) {
+      return (
+        <V03Placeholder
+          title="Timeline & Staffing"
+          body="Project timeline and staffing estimates are not part of v0.3. Check back in a later release."
+        />
+      );
+    }
     return (
       <section className="grid gap-4 md:grid-cols-2">
         <Card title="Timeline">
@@ -117,6 +163,14 @@ export function ExperimentTabContent({ activeTab, results }: ExperimentTabConten
   }
 
   if (activeTab === "trust") {
+    if (results.trustScore == null) {
+      return (
+        <V03Placeholder
+          title="Trust Score"
+          body="A quantitative trust review is not part of v0.3. v0.3 provides novelty and protocol from live analysis instead."
+        />
+      );
+    }
     return (
       <Card title="Trust Score">
         <div className="mb-5 inline-flex rounded-xl bg-gray-900 px-4 py-3 text-2xl font-bold text-white">

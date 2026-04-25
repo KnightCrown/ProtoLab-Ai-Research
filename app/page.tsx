@@ -5,9 +5,16 @@ import { InputSection } from "@/components/input/InputSection";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { ResearchTabs } from "@/components/navigation/ResearchTabs";
 import { ExperimentTabContent } from "@/components/tabs/ExperimentTabContent";
+import type { AnalyzeResponseBody } from "@/lib/analyzeTypes";
 import type { Experiment } from "@/lib/experimentModel";
-import { generateMockResults } from "@/lib/generateMockResults";
+import { mapAnalyzeToResults } from "@/lib/mapAnalyzeToResults";
 import { navItems, TabId } from "@/lib/mockData";
+
+const LOADING_PHASES = [
+  "Analyzing hypothesis…",
+  "Searching literature…",
+  "Generating protocol…",
+] as const;
 
 function newId(): string {
   if (typeof globalThis !== "undefined" && globalThis.crypto && "randomUUID" in globalThis.crypto) {
@@ -16,10 +23,21 @@ function newId(): string {
   return `exp-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+function getErrorMessage(payload: unknown, res: Response): string {
+  if (payload && typeof payload === "object" && "error" in payload) {
+    const e = (payload as { error: unknown }).error;
+    if (typeof e === "string" && e.trim()) return e;
+  }
+  return `Request failed (${res.status}). Please try again.`;
+}
+
 export default function Home() {
   const [experiments, setExperiments] = useState<Experiment[]>([]);
   const [selectedExperimentId, setSelectedExperimentId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabId>("overview");
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [loadingPhase, setLoadingPhase] = useState(0);
 
   const selectedIdResolved = useMemo(() => {
     if (experiments.length === 0) return null;
@@ -40,6 +58,7 @@ export default function Home() {
   const hasExperiments = experiments.length > 0;
 
   const handleNewExperiment = () => {
+    setAnalysisError(null);
     const n = experiments.length + 1;
     const id = newId();
     const newExperiment: Experiment = {
@@ -54,27 +73,64 @@ export default function Home() {
 
   const handleSelectExperiment = (id: string) => {
     setSelectedExperimentId(id);
+    setAnalysisError(null);
   };
 
   const handleHypothesisChange = (value: string) => {
     if (selectedIdResolved == null) return;
+    setAnalysisError(null);
     setExperiments((list) =>
       list.map((e) => (e.id === selectedIdResolved ? { ...e, hypothesis: value } : e))
     );
   };
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     if (selectedIdResolved == null) return;
-    setExperiments((list) =>
-      list.map((e) =>
-        e.id === selectedIdResolved
-          ? {
-              ...e,
-              results: generateMockResults({ name: e.name, hypothesis: e.hypothesis || e.name }),
-            }
-          : e
-      )
-    );
+    setAnalysisError(null);
+    setLoadingPhase(0);
+    setIsAnalyzing(true);
+    const progressTimer = setInterval(() => {
+      setLoadingPhase((i) => Math.min(i + 1, LOADING_PHASES.length - 1));
+    }, 2000);
+    const hypothesis = selected?.hypothesis?.trim() || "";
+    if (!hypothesis) {
+      setAnalysisError("Enter a hypothesis first.");
+      clearInterval(progressTimer);
+      setIsAnalyzing(false);
+      setLoadingPhase(0);
+      return;
+    }
+    try {
+      const res = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ hypothesis }),
+      });
+      const payload: unknown = await res.json();
+      if (!res.ok) {
+        throw new Error(getErrorMessage(payload, res));
+      }
+      const data = payload as AnalyzeResponseBody;
+      if (
+        !data.novelty ||
+        !data.protocol ||
+        !Array.isArray(data.protocol) ||
+        data.protocol.length < 1
+      ) {
+        throw new Error("The server returned an invalid response. Please try again.");
+      }
+      const nextResults = mapAnalyzeToResults(data);
+      setExperiments((list) =>
+        list.map((e) => (e.id === selectedIdResolved ? { ...e, results: nextResults } : e))
+      );
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Something went wrong. Please try again.";
+      setAnalysisError(message);
+    } finally {
+      clearInterval(progressTimer);
+      setIsAnalyzing(false);
+      setLoadingPhase(0);
+    }
   };
 
   return (
@@ -101,6 +157,9 @@ export default function Home() {
               onHypothesisChange={handleHypothesisChange}
               onGenerate={handleGenerate}
               disabled={!selected}
+              isLoading={isAnalyzing}
+              loadingMessage={LOADING_PHASES[Math.min(loadingPhase, LOADING_PHASES.length - 1)]}
+              errorMessage={analysisError}
             />
 
             <ResearchTabs tabs={navItems} activeTab={activeTab} onChange={setActiveTab} />
