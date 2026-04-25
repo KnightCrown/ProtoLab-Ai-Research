@@ -5,15 +5,19 @@ import { InputSection } from "@/components/input/InputSection";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { ResearchTabs } from "@/components/navigation/ResearchTabs";
 import { ExperimentTabContent } from "@/components/tabs/ExperimentTabContent";
-import type { AnalyzeResponseBody } from "@/lib/analyzeTypes";
 import type { Experiment } from "@/lib/experimentModel";
-import { mapAnalyzeToResults } from "@/lib/mapAnalyzeToResults";
+import { mapPlanToResults } from "@/lib/mapPlanToResults";
+import type { PipelineResult } from "@/lib/pipeline/types";
 import { navItems, TabId } from "@/lib/mockData";
 
 const LOADING_PHASES = [
-  "Analyzing hypothesis…",
-  "Searching literature…",
-  "Generating protocol…",
+  "1/7 Analyzing hypothesis…",
+  "2/7 Literature & novelty…",
+  "3/7 Generating protocol (rulebook)…",
+  "4/7 Listing materials…",
+  "5/7 Estimating cost…",
+  "6/7 Building timeline…",
+  "7/7 Defining validation…",
 ] as const;
 
 function newId(): string {
@@ -30,6 +34,8 @@ function getErrorMessage(payload: unknown, res: Response): string {
   }
   return `Request failed (${res.status}). Please try again.`;
 }
+
+type GeneratePlanResponse = { plan: PipelineResult };
 
 export default function Home() {
   const [experiments, setExperiments] = useState<Experiment[]>([]);
@@ -66,6 +72,7 @@ export default function Home() {
       name: `Experiment ${n}`,
       hypothesis: "",
       results: null,
+      fullPlan: undefined,
     };
     setExperiments((list) => [...list, newExperiment]);
     setSelectedExperimentId(id);
@@ -101,7 +108,7 @@ export default function Home() {
       return;
     }
     try {
-      const res = await fetch("/api/analyze", {
+      const res = await fetch("/api/generate-plan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ hypothesis }),
@@ -110,18 +117,20 @@ export default function Home() {
       if (!res.ok) {
         throw new Error(getErrorMessage(payload, res));
       }
-      const data = payload as AnalyzeResponseBody;
-      if (
-        !data.novelty ||
-        !data.protocol ||
-        !Array.isArray(data.protocol) ||
-        data.protocol.length < 1
-      ) {
+      if (!payload || typeof payload !== "object" || !("plan" in payload)) {
         throw new Error("The server returned an invalid response. Please try again.");
       }
-      const nextResults = mapAnalyzeToResults(data);
+      const data = payload as GeneratePlanResponse;
+      if (!data.plan) {
+        throw new Error("The server returned an empty plan.");
+      }
+      const nextResults = mapPlanToResults(data.plan);
       setExperiments((list) =>
-        list.map((e) => (e.id === selectedIdResolved ? { ...e, results: nextResults } : e))
+        list.map((e) =>
+          e.id === selectedIdResolved
+            ? { ...e, results: nextResults, fullPlan: data.plan }
+            : e
+        )
       );
     } catch (err) {
       const message = err instanceof Error ? err.message : "Something went wrong. Please try again.";

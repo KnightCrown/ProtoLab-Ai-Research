@@ -3,37 +3,15 @@ import { DataTable } from "@/components/common/DataTable";
 import type { ExperimentResults } from "@/lib/experimentModel";
 import type { TabId } from "@/lib/mockData";
 
-function TrustIssueBadge({ severity }: { severity: "low" | "medium" | "high" }) {
-  const styles = {
-    low: "bg-green-100 text-green-700",
-    medium: "bg-yellow-100 text-yellow-700",
-    high: "bg-red-100 text-red-700",
-  };
-
-  return (
-    <span className={`rounded-full px-2 py-1 text-xs font-medium ${styles[severity]}`}>
-      {severity}
-    </span>
-  );
-}
-
 function NoResultsPanel() {
   return (
     <div className="rounded-xl border border-dashed border-gray-300 bg-white p-10 text-center shadow-sm">
       <p className="text-sm font-medium text-gray-900">No plan generated yet</p>
       <p className="mt-1 text-sm text-gray-500">
-        Click <span className="font-medium">Generate Experiment Plan</span> to run analysis and
-        fill this tab.
+        Click <span className="font-medium">Generate Experiment Plan</span> to run the multi-stage
+        pipeline.
       </p>
     </div>
-  );
-}
-
-function V03Placeholder({ title, body }: { title: string; body: string }) {
-  return (
-    <Card title={title}>
-      <p className="text-sm text-gray-600">{body}</p>
-    </Card>
   );
 }
 
@@ -49,16 +27,39 @@ export function ExperimentTabContent({ activeTab, results }: ExperimentTabConten
 
   if (activeTab === "overview") {
     const refs = results.overview.references ?? [];
+    const hi = results.overview.hypothesisHighlights;
     return (
       <div className="space-y-4">
         <section className="grid gap-4 md:grid-cols-2">
-          <Card title="Novelty Status">
+          <Card title="Novelty (literature QC)">
             <p className="text-lg font-semibold text-gray-900">{results.overview.noveltyStatus}</p>
           </Card>
-          <Card title="Reasoning">
-            <p className="text-sm leading-6 text-gray-700">{results.overview.summary}</p>
+          <Card title="Reasoning & design">
+            <div className="space-y-3 text-sm leading-6 text-gray-700">
+              {results.overview.summary.split("\n\n").map((para, i) => (
+                <p key={i}>{para}</p>
+              ))}
+            </div>
           </Card>
         </section>
+        {hi ? (
+          <section className="grid gap-4 md:grid-cols-2">
+            <Card title="Independent variables">
+              <ul className="list-disc pl-5 text-sm text-gray-700">
+                {hi.independent.map((x) => (
+                  <li key={x}>{x}</li>
+                ))}
+              </ul>
+            </Card>
+            <Card title="Dependent variables">
+              <ul className="list-disc pl-5 text-sm text-gray-700">
+                {hi.dependent.map((x) => (
+                  <li key={x}>{x}</li>
+                ))}
+              </ul>
+            </Card>
+          </section>
+        ) : null}
         {refs.length > 0 ? (
           <Card title="References">
             <ul className="space-y-2 text-sm text-gray-700">
@@ -83,6 +84,48 @@ export function ExperimentTabContent({ activeTab, results }: ExperimentTabConten
   }
 
   if (activeTab === "protocol") {
+    const structured = results.protocolStructured;
+    if (structured && structured.length > 0) {
+      return (
+        <div className="space-y-4">
+          {structured.map((step) => (
+            <Card key={step.step_number} title={`Step ${step.step_number}`}>
+              <div className="space-y-2 text-sm text-gray-700">
+                <p>
+                  <span className="font-semibold text-gray-900">Action: </span>
+                  {step.action}
+                </p>
+                <div>
+                  <p className="font-semibold text-gray-900">Inputs</p>
+                  <ul className="mt-1 list-disc pl-5">
+                    {step.inputs.map((x) => (
+                      <li key={x}>{x}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-700">
+                  <p className="font-semibold text-gray-900">Conditions</p>
+                  <ul className="mt-1 space-y-0.5">
+                    {step.conditions.time ? <li>Time: {step.conditions.time}</li> : null}
+                    {step.conditions.temperature ? (
+                      <li>Temperature: {step.conditions.temperature}</li>
+                    ) : null}
+                    {step.conditions.concentration ? (
+                      <li>Concentration: {step.conditions.concentration}</li>
+                    ) : null}
+                    {step.conditions.other ? <li>Other: {step.conditions.other}</li> : null}
+                  </ul>
+                </div>
+                <p>
+                  <span className="font-semibold text-gray-900">Output: </span>
+                  {step.output}
+                </p>
+              </div>
+            </Card>
+          ))}
+        </div>
+      );
+    }
     return (
       <Card title="Protocol Steps">
         <ol className="space-y-3 text-sm leading-6 text-gray-700">
@@ -100,94 +143,123 @@ export function ExperimentTabContent({ activeTab, results }: ExperimentTabConten
   }
 
   if (activeTab === "materials") {
-    if (results.materials == null || results.totalCost == null) {
+    if (results.materials == null || results.materials.length === 0) {
       return (
-        <V03Placeholder
-          title="Materials & Cost"
-          body="Materials, suppliers, and cost tables are not generated in v0.3. This will come in a later version."
-        />
+        <Card title="Materials & Cost">
+          <p className="text-sm text-gray-600">No materials in this plan.</p>
+        </Card>
       );
     }
     return (
-      <Card title="Materials & Cost">
-        <DataTable
-          columns={[
-            { header: "Item", key: "item" },
-            { header: "Supplier", key: "supplier" },
-            { header: "Cost", key: "cost", align: "right" },
-          ]}
-          rows={results.materials}
-        />
-        <p className="mt-4 text-right text-sm font-semibold text-gray-900">
-          Total Cost: {results.totalCost}
-        </p>
-      </Card>
+      <div className="space-y-4">
+        <Card title="Materials & Cost">
+          <DataTable
+            columns={[
+              { header: "Item", key: "item" },
+              { header: "Supplier", key: "supplier" },
+              { header: "Est. cost", key: "cost", align: "right" },
+            ]}
+            rows={results.materials}
+          />
+          {results.totalCost ? (
+            <p className="mt-4 text-right text-sm font-semibold text-gray-900">
+              Total (from model): {results.totalCost}
+            </p>
+          ) : null}
+        </Card>
+        {results.costLineItems && results.costLineItems.length > 0 ? (
+          <Card title="Cost breakdown">
+            <ul className="space-y-2 text-sm text-gray-700">
+              {results.costLineItems.map((row) => (
+                <li key={row.label} className="flex justify-between gap-4 border-b border-gray-100 py-1">
+                  <span>{row.label}</span>
+                  <span className="font-medium text-gray-900">{row.amount}</span>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        ) : null}
+        {results.costDrivers && results.costDrivers.length > 0 ? (
+          <Card title="Cost drivers">
+            <ul className="list-disc pl-5 text-sm text-gray-700">
+              {results.costDrivers.map((d) => (
+                <li key={d}>{d}</li>
+              ))}
+            </ul>
+          </Card>
+        ) : null}
+      </div>
     );
   }
 
   if (activeTab === "timeline") {
-    if (results.timeline == null || results.staffing == null) {
-      return (
-        <V03Placeholder
-          title="Timeline & Staffing"
-          body="Project timeline and staffing estimates are not part of v0.3. Check back in a later release."
-        />
-      );
-    }
+    const lines = results.timeline ?? [];
     return (
       <section className="grid gap-4 md:grid-cols-2">
-        <Card title="Timeline">
-          <ul className="space-y-2 text-sm text-gray-700">
-            {results.timeline.map((entry) => (
-              <li key={entry} className="rounded-lg bg-gray-50 px-3 py-2">
-                {entry}
-              </li>
-            ))}
-          </ul>
+        <Card title="Timeline (phases)">
+          {lines.length === 0 ? (
+            <p className="text-sm text-gray-600">No timeline data.</p>
+          ) : (
+            <ul className="space-y-2 text-sm text-gray-700">
+              {lines.map((entry) => (
+                <li key={entry} className="rounded-lg bg-gray-50 px-3 py-2">
+                  {entry}
+                </li>
+              ))}
+            </ul>
+          )}
+          {results.timelineTotalDuration ? (
+            <p className="mt-3 text-sm font-medium text-gray-900">
+              Total duration: {results.timelineTotalDuration}
+            </p>
+          ) : null}
         </Card>
-        <Card title="Staffing">
-          <ul className="space-y-2 text-sm text-gray-700">
-            {results.staffing.map((member) => (
-              <li
-                key={member.role}
-                className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2"
-              >
-                <span>{member.role}</span>
-                <span className="font-medium text-gray-900">{member.hours}h</span>
-              </li>
-            ))}
-          </ul>
+        <Card title="Dependencies & staffing">
+          {results.timelineDependencies && results.timelineDependencies.length > 0 ? (
+            <ul className="list-disc pl-5 text-sm text-gray-700">
+              {results.timelineDependencies.map((d) => (
+                <li key={d}>{d}</li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-gray-600">
+              Dependencies appear here when the pipeline provides them. Staffing is derived from
+              phase workload in future versions.
+            </p>
+          )}
         </Card>
       </section>
     );
   }
 
   if (activeTab === "trust") {
-    if (results.trustScore == null) {
+    const v = results.validation;
+    if (!v) {
       return (
-        <V03Placeholder
-          title="Trust Score"
-          body="A quantitative trust review is not part of v0.3. v0.3 provides novelty and protocol from live analysis instead."
-        />
+        <Card title="Validation & statistics">
+          <p className="text-sm text-gray-600">No validation block for this plan (legacy data).</p>
+        </Card>
       );
     }
     return (
-      <Card title="Trust Score">
-        <div className="mb-5 inline-flex rounded-xl bg-gray-900 px-4 py-3 text-2xl font-bold text-white">
-          {results.trustScore.score}/100
-        </div>
-        <ul className="space-y-3">
-          {results.trustScore.issues.map((issue) => (
-            <li
-              key={issue.text}
-              className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 px-3 py-2"
-            >
-              <span className="text-sm text-gray-700">{issue.text}</span>
-              <TrustIssueBadge severity={issue.severity} />
-            </li>
-          ))}
-        </ul>
-      </Card>
+      <div className="space-y-4">
+        <Card title="Measurement">
+          <p className="text-sm leading-6 text-gray-800">{v.measurement_method}</p>
+        </Card>
+        <Card title="Statistical analysis">
+          <p className="text-sm leading-6 text-gray-800">{v.statistical_test}</p>
+        </Card>
+        <Card title="Success criteria">
+          <p className="text-sm leading-6 text-gray-800">{v.success_criteria}</p>
+        </Card>
+        <Card title="Sources of error / confounders">
+          <ul className="list-disc pl-5 text-sm text-gray-700">
+            {v.sources_of_error.map((s) => (
+              <li key={s}>{s}</li>
+            ))}
+          </ul>
+        </Card>
+      </div>
     );
   }
 

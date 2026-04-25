@@ -1,18 +1,5 @@
-export type NoveltyClassification =
-  | "no strong prior work"
-  | "similar work exists"
-  | "well studied";
-
+/** UI / API reference link shape (shared with pipeline output mapping). */
 export type LiteratureReference = {
   title: string;
   url: string;
-};
-
-export type AnalyzeResponseBody = {
-  novelty: {
-    classification: NoveltyClassification;
-    reasoning: string;
-    references: LiteratureReference[];
-  };
-  protocol: string[];
 };
