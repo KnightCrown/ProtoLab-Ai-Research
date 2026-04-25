@@ -28,12 +28,49 @@ export type ProtocolConditions = {
   other?: string;
 };
 
-export type ProtocolStep = {
+/**
+ * Flexible procedure step: include only fields that add clarity (real lab protocols mix
+ * calculations, prep, execution, and notes). Use `text` for narrative steps; nest `sub_steps`
+ * for 1a/1b or grouped operations.
+ */
+export type ProcedureStep = {
   step_number: number;
-  action: string;
-  inputs: string[];
-  conditions: ProtocolConditions;
-  output: string;
+  /** e.g. calculation | preparation | execution | measurement | repetition | section | note */
+  kind?: string;
+  /** Primary narrative for the step when a single block is best */
+  text?: string;
+  action?: string;
+  inputs?: string[];
+  quantities?: string;
+  conditions?: ProtocolConditions;
+  output?: string;
+  observation?: string;
+  sub_steps?: ProcedureStep[];
+};
+
+/** @deprecated alias — same as ProcedureStep */
+export type ProtocolStep = ProcedureStep;
+
+/**
+ * One executable procedure. Procedure is an ordered list of steps; optional notes block at end.
+ */
+export type LaboratoryProtocol = {
+  /** Stable id for UI keys, e.g. "proc-1" */
+  protocol_id: string;
+  title: string;
+  objective: string;
+  /** Reagents, consumables, equipment—specific lines as in a real SOP */
+  materials: string[];
+  /** Top-level procedure steps; may nest sub_steps for logical grouping */
+  procedure: ProcedureStep[];
+  /** Optional end section: bench notes, formulas, acceptance criteria, etc. */
+  notes_and_calculations?: string[];
+};
+
+/** Flattened line for schedulers and timeline fallback (one row per “leaf” step). */
+export type FlattenedProcedureLine = {
+  step_number: number;
+  summary: string;
 };
 
 /** Raw extraction from protocol text (stage: extractMaterialsFromProtocol) */
@@ -108,7 +145,8 @@ export type ValidationPlan = {
 export type PipelineResult = {
   hypothesis_analysis: HypothesisAnalysis;
   literature_qc: LiteratureQC;
-  protocol: ProtocolStep[];
+  /** One or more lab-manual–grade procedures */
+  protocols: LaboratoryProtocol[];
   materials_extracted: ExtractedMaterial[];
   /** Grounded in Tavily snippets; used for cost */
   materials: ResearchedMaterial[];

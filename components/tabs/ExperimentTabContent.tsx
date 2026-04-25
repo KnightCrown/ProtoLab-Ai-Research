@@ -1,7 +1,17 @@
+"use client";
+
+import { useState } from "react";
 import { Card } from "@/components/common/Card";
 import { DataTable } from "@/components/common/DataTable";
 import type { ExperimentResults } from "@/lib/experimentModel";
 import type { TabId } from "@/lib/mockData";
+import type { LaboratoryProtocol, ProcedureStep, ProtocolConditions } from "@/lib/pipeline/types";
+
+const noveltyToneClass: Record<ExperimentResults["overview"]["noveltyKind"], string> = {
+  no_prior: "text-red-600",
+  similar: "text-amber-600",
+  well_studied: "text-emerald-700",
+};
 
 function NoResultsPanel() {
   return (
@@ -20,115 +30,276 @@ type ExperimentTabContentProps = {
   results: ExperimentResults | null;
 };
 
+function formatConditionLines(c: ProtocolConditions | undefined): string[] {
+  if (!c) return [];
+  return [
+    c.temperature ? `Temperature: ${c.temperature}` : null,
+    c.time ? `Time: ${c.time}` : null,
+    c.concentration ? `Concentration: ${c.concentration}` : null,
+    c.other ? `Other: ${c.other}` : null,
+  ].filter((x): x is string => Boolean(x));
+}
+
+function ProcedureStepBlock({ step, depth = 0 }: { step: ProcedureStep; depth?: number }) {
+  const condLines = formatConditionLines(step.conditions);
+  return (
+    <div
+      className={depth > 0 ? "mt-4 border-l-2 border-slate-200 pl-4" : ""}
+      data-step={step.step_number}
+    >
+      <div className="border-b border-gray-200 py-4 last:border-b-0">
+        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+          {step.kind ? <span className="text-slate-600">{step.kind} · </span> : null}
+          Step {step.step_number}
+        </p>
+        {step.text ? (
+          <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-gray-800">{step.text}</p>
+        ) : null}
+        {step.action ? (
+          <p className="mt-2 text-sm leading-relaxed text-gray-800">
+            <span className="font-semibold text-gray-900">Action: </span>
+            {step.action}
+          </p>
+        ) : null}
+        {step.inputs && step.inputs.length > 0 ? (
+          <div className="mt-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Inputs</p>
+            <ul className="mt-1 list-disc pl-5 text-sm text-gray-800">
+              {step.inputs.map((x) => (
+                <li key={x}>{x}</li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+        {step.quantities ? (
+          <p className="mt-2 text-sm">
+            <span className="font-semibold text-gray-900">Quantities: </span>
+            <span className="font-mono text-[13px] text-gray-900">{step.quantities}</span>
+          </p>
+        ) : null}
+        {condLines.length > 0 ? (
+          <div className="mt-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Conditions</p>
+            <ul className="mt-1 list-disc pl-5 text-sm text-gray-700">
+              {condLines.map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+        {step.output ? (
+          <p className="mt-2 text-sm leading-relaxed text-gray-800">
+            <span className="font-semibold text-gray-900">Output: </span>
+            {step.output}
+          </p>
+        ) : null}
+        {step.observation ? (
+          <p className="mt-2 text-sm leading-relaxed text-gray-800">
+            <span className="font-semibold text-gray-900">Observation: </span>
+            {step.observation}
+          </p>
+        ) : null}
+        {step.sub_steps?.map((ss, i) => (
+          <ProcedureStepBlock key={`${step.step_number}-sub-${i}`} step={ss} depth={depth + 1} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CollapsibleProtocol({ p }: { p: LaboratoryProtocol }) {
+  const [open, setOpen] = useState(true);
+  return (
+    <section
+      className="border border-gray-200 bg-white"
+      aria-labelledby={`proto-title-${p.protocol_id}`}
+    >
+      <button
+        type="button"
+        className="flex w-full items-start justify-between gap-3 border-b border-gray-200 bg-slate-50/90 px-5 py-4 text-left transition hover:bg-slate-100/90 sm:px-8"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        id={`proto-title-${p.protocol_id}`}
+      >
+        <span className="text-lg font-bold tracking-tight text-gray-900 sm:text-xl">{p.title}</span>
+        <span
+          className="mt-0.5 shrink-0 text-slate-500"
+          aria-hidden
+        >
+          {open ? (
+            <span className="text-base">▾</span>
+          ) : (
+            <span className="text-base">▸</span>
+          )}
+        </span>
+      </button>
+      {open ? (
+        <div>
+          <div className="px-5 py-4 sm:px-8 sm:py-5">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500">Objective</h3>
+            <p className="mt-2 text-sm leading-relaxed text-gray-800">{p.objective}</p>
+          </div>
+          <div className="border-t border-gray-100 px-5 py-4 sm:px-8 sm:py-5">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500">Materials</h3>
+            <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-relaxed text-gray-800">
+              {p.materials.map((m) => (
+                <li key={m}>{m}</li>
+              ))}
+            </ul>
+          </div>
+          <div className="border-t border-gray-200 px-5 pb-4 pt-2 sm:px-8 sm:pb-6">
+            <h3 className="mb-1 mt-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
+              Procedure
+            </h3>
+            {p.procedure.map((step, i) => (
+              <ProcedureStepBlock key={`${p.protocol_id}-p-${i}`} step={step} />
+            ))}
+          </div>
+          {p.notes_and_calculations && p.notes_and_calculations.length > 0 ? (
+            <div className="border-t border-gray-200 bg-amber-50/40 px-5 py-4 sm:px-8 sm:py-5">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-amber-900/80">
+                Notes and calculations
+              </h3>
+              <ul className="mt-2 list-disc space-y-2 pl-5 text-sm leading-relaxed text-gray-800">
+                {p.notes_and_calculations.map((n, i) => (
+                  <li key={`${p.protocol_id}-n-${i}`} className="whitespace-pre-wrap">
+                    {n}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
 export function ExperimentTabContent({ activeTab, results }: ExperimentTabContentProps) {
   if (!results) {
     return <NoResultsPanel />;
   }
 
   if (activeTab === "overview") {
-    const refs = results.overview.references ?? [];
-    const hi = results.overview.hypothesisHighlights;
+    const o = results.overview;
+    const d = o.experimentDesign;
+    const tone = noveltyToneClass[o.noveltyKind];
+    const refs = o.references ?? [];
     return (
-      <div className="space-y-4">
-        <section className="grid gap-4 md:grid-cols-2">
-          <Card title="Novelty (literature QC)">
-            <p className="text-lg font-semibold text-gray-900">{results.overview.noveltyStatus}</p>
-          </Card>
-          <Card title="Reasoning & design">
-            <div className="space-y-3 text-sm leading-6 text-gray-700">
-              {results.overview.summary.split("\n\n").map((para, i) => (
-                <p key={i}>{para}</p>
-              ))}
-            </div>
-          </Card>
-        </section>
-        {hi ? (
-          <section className="grid gap-4 md:grid-cols-2">
-            <Card title="Independent variables">
-              <ul className="list-disc pl-5 text-sm text-gray-700">
-                {hi.independent.map((x) => (
-                  <li key={x}>{x}</li>
-                ))}
-              </ul>
-            </Card>
-            <Card title="Dependent variables">
-              <ul className="list-disc pl-5 text-sm text-gray-700">
-                {hi.dependent.map((x) => (
-                  <li key={x}>{x}</li>
-                ))}
-              </ul>
-            </Card>
-          </section>
-        ) : null}
+      <article className="w-full max-w-4xl border border-gray-200 bg-white text-gray-900">
+        <div className="border-b border-gray-200 px-5 py-6 sm:px-8">
+          <p className={`text-2xl font-bold tracking-tight sm:text-3xl ${tone}`}>
+            {o.noveltyLabel}
+          </p>
+        </div>
+        <div className="border-b border-gray-200 px-5 py-6 sm:px-8">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+            Literature insight
+          </h2>
+          <p className="mt-3 text-sm leading-7 text-gray-800">
+            {o.literatureInsight === "—" ? (
+              <span className="text-gray-500">No additional reasoning was returned.</span>
+            ) : (
+              o.literatureInsight
+            )}
+          </p>
+        </div>
+        <div className="px-5 py-6 sm:px-8">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+            Experiment design
+          </h2>
+          <div className="mt-6 space-y-6 text-sm">
+            <section>
+              <h3 className="text-sm font-semibold text-gray-900">Independent variables</h3>
+              {d.independentVariables.length ? (
+                <ul className="mt-2 list-disc space-y-1 pl-5 text-gray-800">
+                  {d.independentVariables.map((x) => (
+                    <li key={x}>{x}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-2 text-gray-500">—</p>
+              )}
+            </section>
+            <section>
+              <h3 className="text-sm font-semibold text-gray-900">Dependent variables</h3>
+              {d.dependentVariables.length ? (
+                <ul className="mt-2 list-disc space-y-1 pl-5 text-gray-800">
+                  {d.dependentVariables.map((x) => (
+                    <li key={x}>{x}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-2 text-gray-500">—</p>
+              )}
+            </section>
+            <section>
+              <h3 className="text-sm font-semibold text-gray-900">Control group</h3>
+              <p className="mt-2 leading-relaxed text-gray-800">{d.controlGroup}</p>
+            </section>
+            <section>
+              <h3 className="text-sm font-semibold text-gray-900">Experimental groups</h3>
+              {d.experimentalGroups.length ? (
+                <ul className="mt-2 list-disc space-y-1 pl-5 text-gray-800">
+                  {d.experimentalGroups.map((x) => (
+                    <li key={x}>{x}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-2 text-gray-500">—</p>
+              )}
+            </section>
+            <section>
+              <h3 className="text-sm font-semibold text-gray-900">Measurement method</h3>
+              <p className="mt-2 leading-relaxed text-gray-800">{d.measurementMethod}</p>
+            </section>
+            <section>
+              <h3 className="text-sm font-semibold text-gray-900">Success criteria</h3>
+              <p className="mt-2 leading-relaxed text-gray-800">{d.successCriteria}</p>
+            </section>
+          </div>
+        </div>
         {refs.length > 0 ? (
-          <Card title="References">
-            <ul className="space-y-2 text-sm text-gray-700">
+          <div className="border-t border-gray-200 bg-gray-50/80 px-5 py-6 sm:px-8">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+              References
+            </h2>
+            <ol className="mt-3 list-decimal space-y-3 pl-5 text-sm text-gray-800">
               {refs.map((r) => (
-                <li key={r.url}>
+                <li key={r.url} className="pl-1">
                   <a
                     href={r.url}
                     target="_blank"
                     rel="noreferrer"
-                    className="font-medium text-gray-900 underline decoration-gray-300 hover:decoration-gray-500"
+                    className="font-medium text-gray-900 underline decoration-gray-300 underline-offset-2 hover:decoration-gray-600"
                   >
                     {r.title}
                   </a>
                   <p className="mt-0.5 break-all text-xs text-gray-500">{r.url}</p>
                 </li>
               ))}
-            </ul>
-          </Card>
+            </ol>
+          </div>
         ) : null}
-      </div>
+      </article>
     );
   }
 
   if (activeTab === "protocol") {
-    const structured = results.protocolStructured;
-    if (structured && structured.length > 0) {
+    const prots = results.laboratoryProtocols;
+    if (prots && prots.length > 0) {
       return (
-        <div className="space-y-4">
-          {structured.map((step) => (
-            <Card key={step.step_number} title={`Step ${step.step_number}`}>
-              <div className="space-y-2 text-sm text-gray-700">
-                <p>
-                  <span className="font-semibold text-gray-900">Action: </span>
-                  {step.action}
-                </p>
-                <div>
-                  <p className="font-semibold text-gray-900">Inputs</p>
-                  <ul className="mt-1 list-disc pl-5">
-                    {step.inputs.map((x) => (
-                      <li key={x}>{x}</li>
-                    ))}
-                  </ul>
-                </div>
-                <div className="rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-700">
-                  <p className="font-semibold text-gray-900">Conditions</p>
-                  <ul className="mt-1 space-y-0.5">
-                    {step.conditions.time ? <li>Time: {step.conditions.time}</li> : null}
-                    {step.conditions.temperature ? (
-                      <li>Temperature: {step.conditions.temperature}</li>
-                    ) : null}
-                    {step.conditions.concentration ? (
-                      <li>Concentration: {step.conditions.concentration}</li>
-                    ) : null}
-                    {step.conditions.other ? <li>Other: {step.conditions.other}</li> : null}
-                  </ul>
-                </div>
-                <p>
-                  <span className="font-semibold text-gray-900">Output: </span>
-                  {step.output}
-                </p>
-              </div>
-            </Card>
+        <div className="w-full space-y-6">
+          {prots.map((p) => (
+            <CollapsibleProtocol key={p.protocol_id} p={p} />
           ))}
         </div>
       );
     }
     return (
-      <Card title="Protocol Steps">
-        <ol className="space-y-3 text-sm leading-6 text-gray-700">
+      <div className="w-full max-w-4xl border border-gray-200 bg-white px-5 py-6 sm:px-8">
+        <h2 className="text-sm font-semibold text-gray-900">Protocol (plain text)</h2>
+        <ol className="mt-4 space-y-3 text-sm leading-7 text-gray-800">
           {results.protocolSteps.map((step, index) => (
             <li key={index} className="flex gap-3">
               <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-semibold text-gray-700">
@@ -138,7 +309,7 @@ export function ExperimentTabContent({ activeTab, results }: ExperimentTabConten
             </li>
           ))}
         </ol>
-      </Card>
+      </div>
     );
   }
 

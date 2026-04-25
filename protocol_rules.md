@@ -1,50 +1,38 @@
-# Protocol Rulebook (ProtoLab v0.4)
+# Protocol rulebook (ProtoLab)
 
-These rules are **mandatory** for any generated laboratory protocol. Violations (vague steps, missing parameters) are not acceptable.
+These rules apply to **every** generated protocol. `protocol_example.md` supplies **style and structure**; these rules supply **scientific quality and constraints**.
 
-## 1) Structure
+## Required high-level structure
 
-- Every protocol is an ordered list of **atomic steps** (one primary physical or analytical action per step, unless a pair is inseparable, e.g. "centrifuge" + "remove supernatant").
-- Each step MUST declare: **action**, **inputs** (reagents, samples, equipment), **conditions** (time, temperature, atmosphere, agitation, concentration or range), and **output** (intermediate or final state).
-- **No** steps like "perform standard analysis" or "as previously described" without full parameters.
+Each protocol must contain: **title**, **objective**, **materials**, **procedure** (ordered steps), and optionally **notes_and_calculations** (e.g. formulas, logbook, QA, acceptance).
 
-## 2) Conditions (required when applicable)
+## Flexibility of steps
 
-- **Time:** explicit duration or timepoint (e.g. "5 min at RT", "incubate 16 h at 37 °C, 5% CO2").
-- **Temperature:** in °C (or K if cryogenic) or "room temperature" with definition if not 20–25 °C.
-- **Concentration / amount:** molarity, mg/mL, g/L, or % w/v, v/v, or number of replicates and volume per well/tube.
-- If unknown, use **defensible research ranges** (e.g. "0.1–1.0 mM" or "5–10 % CO2") and label as **suggested default**, not a hidden assumption.
+- Steps are **not** forced into a fixed set of sub-fields. Include only what helps replication: narrative `text` alone is valid; structured fields (action, inputs, quantities, conditions, output, observation) are welcome when they add precision.
+- Support **sub_steps** to mirror real SOPs (e.g. 1a, pilot vs final, nested tasks).
+- Step **kind** (optional) may label: calculation, preparation, execution, measurement, repetition, etc.
 
-## 3) Safety & controls
+## Scientific bar
 
-- Include **positive/negative** controls when the experiment implies causality, unless the hypothesis is purely descriptive (then state why controls are N/A and what baseline is used).
-- List **PPE, biosafety level, and waste** only when the materials imply risk (BSL, chemicals, radioactivity, sharps). Otherwise "standard lab PPE" is acceptable as one explicit line.
+- Avoid vague “standard” or “as per kit” without stating the **parameters** you use (volumes, temperatures, timepoints, replicates, instrument mode).
+- Where uncertainty exists, give a defensible default or range and state the assumption.
+- List **replicates**, controls, and measurement endpoints when the design implies them.
 
-## 4) Replicability
+## Replicability
 
-- State **N** (biological/technical replicates) or plate layout when relevant.
-- For instruments, name **key settings** (e.g. "microplate reader: endpoint absorbance, 450 nm" not just "read plate").
+- Material lines should be specific (grade, key catalog detail, or clear generic with critical spec e.g. “0.1 M carbonate-free NaOH”).
+- For calculations, show what is computed and what is measured, so a peer can audit the logic.
 
-## 5) Outputs
+## Forbidden
 
-- The **output** field must be measurable or observable: "lysed cells", "cDNA in tube", "fluorescence image stack", "normalized OD450", etc.
-- If a step produces data files, name **file type** and key metadata (e.g. "FCS 3.0 or CSV with one row per well").
+- Placeholder-only steps with no testable or observable content.
+- Contradictory or dimensionally impossible quantities.
 
-## 6) Forbidden
+## JSON (pipeline)
 
-- "Optimize as needed" without a procedure.
-- "According to the manufacturer" without listing critical manufacturer parameters you depend on.
-- "Analyze statistically" without naming the comparison and primary test.
-
-## 7) JSON shape (enforced in prompt)
-
-The model must return steps as JSON objects with fields:
-
-- `action` (string)
-- `inputs` (array of strings)
-- `conditions` (object, keys may include: `time`, `temperature`, `concentration`, `other` — all strings)
-- `output` (string)
+- Top-level: `protocols[]`.
+- Each item: `protocol_id`, `title`, `objective`, `materials[]`, `procedure[]` of flexible steps, optional `notes_and_calculations[]`.
 
 ---
 
-End of rulebook. All protocol generation must comply.
+Comply with this rulebook; emulate **example tone and structure** from `protocol_example.md` without copying its subject matter.

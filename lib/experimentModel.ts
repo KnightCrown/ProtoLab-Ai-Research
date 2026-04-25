@@ -1,10 +1,17 @@
 import type { LiteratureReference } from "./analyzeTypes";
 import type { MaterialRow, TrustIssue } from "./mockData";
-import type { ProtocolStep, StaffingPlan, StepTimeline, ValidationPlan } from "./pipeline/types";
+import type { LaboratoryProtocol, StaffingPlan, StepTimeline, ValidationPlan } from "./pipeline/types";
 
-export type HypothesisHighlights = {
-  independent: string[];
-  dependent: string[];
+/** Maps literature novelty to Overview accent and primary label */
+export type NoveltyKind = "no_prior" | "similar" | "well_studied";
+
+export type ExperimentDesignOverview = {
+  independentVariables: string[];
+  dependentVariables: string[];
+  controlGroup: string;
+  experimentalGroups: string[];
+  measurementMethod: string;
+  successCriteria: string;
 };
 
 export type MaterialDetailRow = {
@@ -21,12 +28,15 @@ export type MaterialDetailRow = {
  */
 export type ExperimentResults = {
   overview: {
-    noveltyStatus: string;
-    summary: string;
+    noveltyLabel: string;
+    noveltyKind: NoveltyKind;
+    literatureInsight: string;
+    experimentDesign: ExperimentDesignOverview;
     references?: LiteratureReference[];
-    hypothesisHighlights?: HypothesisHighlights;
   };
-  protocolStructured?: ProtocolStep[];
+  /** One or more lab-manual procedures from the pipeline */
+  laboratoryProtocols?: LaboratoryProtocol[];
+  /** Flattened one-line per step (all procedures), for search / compact copy */
   protocolSteps: string[];
   materials?: MaterialRow[];
   materialsDetail?: MaterialDetailRow[];

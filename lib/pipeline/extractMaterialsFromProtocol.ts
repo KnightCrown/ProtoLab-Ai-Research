@@ -4,7 +4,8 @@ import {
   EXTRACT_MATERIALS_SYSTEM,
 } from "@/lib/prompts/extractMaterialsPrompt";
 import { completeJson } from "@/lib/pipeline/openaiJson";
-import type { ExtractedMaterial, PipelineLogFn, ProtocolStep } from "@/lib/pipeline/types";
+import { totalStepCount } from "@/lib/pipeline/protocolFlatten";
+import type { ExtractedMaterial, LaboratoryProtocol, PipelineLogFn } from "@/lib/pipeline/types";
 
 function parseList(raw: Record<string, unknown>): ExtractedMaterial[] {
   const arr = raw.materials;
@@ -22,16 +23,17 @@ function parseList(raw: Record<string, unknown>): ExtractedMaterial[] {
 
 export async function extractMaterialsFromProtocol(
   openai: OpenAI,
-  protocol: ProtocolStep[],
+  protocols: LaboratoryProtocol[],
   log: PipelineLogFn
 ): Promise<ExtractedMaterial[]> {
-  log("extract_materials", "start", { steps: protocol.length });
-  if (protocol.length === 0) {
-    throw new Error("Protocol is empty; cannot extract materials");
+  const stepCount = totalStepCount(protocols);
+  log("extract_materials", "start", { procedures: protocols.length, steps: stepCount });
+  if (protocols.length === 0 || stepCount === 0) {
+    throw new Error("No protocol procedures; cannot extract materials");
   }
   const raw = await completeJson(openai, {
     system: EXTRACT_MATERIALS_SYSTEM,
-    user: buildExtractMaterialsUser(protocol),
+    user: buildExtractMaterialsUser(protocols),
     max_tokens: 3500,
   });
   const materials = parseList(raw);

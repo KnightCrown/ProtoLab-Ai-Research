@@ -1,5 +1,4 @@
-import type { HypothesisAnalysis } from "@/lib/pipeline/types";
-import type { ProtocolStep } from "@/lib/pipeline/types";
+import type { HypothesisAnalysis, LaboratoryProtocol } from "@/lib/pipeline/types";
 
 const VAL_SCHEMA = `{
   "measurement_method": string,
@@ -16,9 +15,9 @@ export const VALIDATION_SYSTEM = `You define validation and statistics for the e
 export function buildValidationUserMessage(
   hypothesis: string,
   analysis: HypothesisAnalysis,
-  protocol: ProtocolStep[]
+  protocols: LaboratoryProtocol[]
 ) {
   return `HYPOTHESIS:\n${hypothesis}\n\nANALYSIS:\n${JSON.stringify(
     analysis
-  )}\n\nPROTOCOL:\n${JSON.stringify(protocol)}`;
+  )}\n\nLABORATORY_PROTOCOLS (may be multiple procedures):\n${JSON.stringify(protocols)}`;
 }

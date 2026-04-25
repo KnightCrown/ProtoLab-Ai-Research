@@ -56,14 +56,14 @@ export async function runPipeline(opts: RunPipelineOptions): Promise<PipelineRes
       log
     );
     const rules = await loadProtocolRules();
-    const protocol = await generateProtocol(
+    const protocols = await generateProtocol(
       openai,
       hypothesis,
       hypothesis_analysis,
       rules,
       log
     );
-    const materials_extracted = await extractMaterialsFromProtocol(openai, protocol, log);
+    const materials_extracted = await extractMaterialsFromProtocol(openai, protocols, log);
     const materials = await researchMaterials(
       openai,
       opts.tavilyApiKey,
@@ -75,22 +75,22 @@ export async function runPipeline(opts: RunPipelineOptions): Promise<PipelineRes
       openai,
       opts.tavilyApiKey,
       hypothesis,
-      protocol,
+      protocols,
       log
     );
-    const staffing = estimateStaffing(protocol, timeline, log);
+    const staffing = estimateStaffing(protocols, timeline, log);
     const validation = await generateValidation(
       openai,
       hypothesis,
       hypothesis_analysis,
-      protocol,
+      protocols,
       log
     );
 
     return {
       hypothesis_analysis,
       literature_qc,
-      protocol,
+      protocols,
       materials_extracted,
       materials,
       cost_estimate,

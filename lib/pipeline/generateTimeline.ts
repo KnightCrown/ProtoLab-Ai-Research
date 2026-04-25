@@ -2,7 +2,15 @@ import type OpenAI from "openai";
 import { buildTimelineUser, TIMELINE_SYSTEM } from "@/lib/prompts/timelinePrompt";
 import { completeJson } from "@/lib/pipeline/openaiJson";
 import { runTavilySearch } from "@/lib/pipeline/tavilySearch";
-import type { PipelineLogFn, ProtocolStep, StepTimeline, TimelinePlan, TimelineStepType } from "@/lib/pipeline/types";
+import { flattenProtocolSteps } from "@/lib/pipeline/protocolFlatten";
+import type {
+  FlattenedProcedureLine,
+  LaboratoryProtocol,
+  StepTimeline,
+  TimelinePlan,
+  TimelineStepType,
+  PipelineLogFn,
+} from "@/lib/pipeline/types";
 
 const TYPES: TimelineStepType[] = [
   "preparation",
@@ -17,13 +25,13 @@ function normType(s: string): TimelineStepType {
   return TYPES.includes(t) ? t : "execution";
 }
 
-function parse(raw: Record<string, unknown>, protocol: ProtocolStep[]): TimelinePlan {
+function parse(raw: Record<string, unknown>, flat: FlattenedProcedureLine[]): TimelinePlan {
   const st = Array.isArray(raw.steps_timeline) ? raw.steps_timeline : [];
   const steps_timeline: StepTimeline[] = st.map((row, i) => {
     const o = row as Record<string, unknown>;
     return {
       step_number: typeof o.step_number === "number" ? o.step_number : i + 1,
-      step: String(o.step || protocol[i]?.action || "step").trim(),
+      step: String(o.step || flat[i]?.summary || "step").trim(),
       estimated_duration: String(o.estimated_duration || "1 h").trim() || "1 h",
       type: normType(String(o.type || "execution")),
     };
@@ -46,9 +54,9 @@ function parse(raw: Record<string, unknown>, protocol: ProtocolStep[]): Timeline
   return {
     steps_timeline: steps_timeline.length
       ? steps_timeline
-      : protocol.map((p, j) => ({
-          step_number: p.step_number || j + 1,
-          step: p.action,
+      : flat.map((line, j) => ({
+          step_number: line.step_number || j + 1,
+          step: line.summary,
           estimated_duration: "TBD",
           type: "execution" as const,
         })),
@@ -63,8 +71,8 @@ function parse(raw: Record<string, unknown>, protocol: ProtocolStep[]): Timeline
   };
 }
 
-function shortQuery(hypothesis: string, protocol: ProtocolStep[]): string {
-  const p0 = protocol[0]?.action || "laboratory procedure";
+function shortQuery(hypothesis: string, flat: FlattenedProcedureLine[]): string {
+  const p0 = flat[0]?.summary || "laboratory procedure";
   return `how long does ${p0.slice(0, 80)} take in lab ${hypothesis.slice(0, 40)}`
     .replace(/\s+/g, " ")
     .trim();
@@ -74,15 +82,16 @@ export async function generateTimeline(
   openai: OpenAI,
   tavilyKey: string,
   hypothesis: string,
-  protocol: ProtocolStep[],
+  protocols: LaboratoryProtocol[],
   log: PipelineLogFn
 ): Promise<TimelinePlan> {
-  log("timeline_generation", "start", { steps: protocol.length });
+  const flat = flattenProtocolSteps(protocols);
+  log("timeline_generation", "start", { procedures: protocols.length, steps: flat.length });
   let webNote: string | undefined;
-  if (protocol.length > 0) {
+  if (flat.length > 0) {
     const hits = await runTavilySearch({
       tavilyKey,
-      query: shortQuery(hypothesis, protocol),
+      query: shortQuery(hypothesis, flat),
       maxResults: 2,
     });
     webNote = hits
@@ -93,10 +102,10 @@ export async function generateTimeline(
 
   const raw = await completeJson(openai, {
     system: TIMELINE_SYSTEM,
-    user: buildTimelineUser(hypothesis, protocol, webNote),
+    user: buildTimelineUser(hypothesis, protocols, flat, webNote),
     max_tokens: 3000,
   });
-  const out = parse(raw, protocol);
+  const out = parse(raw, flat);
   if (webNote) {
     out.web_duration_note = webNote.slice(0, 2000);
   }

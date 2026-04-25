@@ -1,4 +1,5 @@
-import type { PipelineLogFn, ProtocolStep, StaffingPlan, TimelinePlan } from "@/lib/pipeline/types";
+import { totalStepCount } from "@/lib/pipeline/protocolFlatten";
+import type { LaboratoryProtocol, PipelineLogFn, StaffingPlan, TimelinePlan } from "@/lib/pipeline/types";
 
 /** Rough hours-equivalent for the project span (order of magnitude) */
 function projectEffortHours(totalDurationStr: string, stepCount: number): number {
@@ -24,22 +25,24 @@ function projectEffortHours(totalDurationStr: string, stepCount: number): number
 }
 
 export function estimateStaffing(
-  protocol: ProtocolStep[],
+  protocols: LaboratoryProtocol[],
   timeline: TimelinePlan,
   log: PipelineLogFn
 ): StaffingPlan {
-  log("estimate_staffing", "start", {});
-  const nSteps = protocol.length;
+  log("estimate_staffing", "start", { procedures: protocols.length });
+  const nSteps = totalStepCount(protocols);
+  const nProc = Math.max(1, protocols.length);
   const analysisCount = (timeline.steps_timeline || []).filter((s) => s.type === "analysis").length;
   const effort = projectEffortHours(timeline.total_duration, nSteps);
 
   const roles: string[] = ["Lab Technician", "Research Scientist"];
-  if (analysisCount > 0 || nSteps > 14 || effort > 500) {
+  if (analysisCount > 0 || nSteps > 14 || nProc >= 2 || effort > 500) {
     roles.push("Data Analyst");
   }
 
   const uniqueRoles = [...new Set(roles)];
-  const total_people = Math.min(4, Math.max(2, uniqueRoles.length));
+  const peopleFromProcedures = nProc >= 3 ? 3 : 2;
+  const total_people = Math.min(4, Math.max(peopleFromProcedures, uniqueRoles.length));
 
   const hours_per_role: Record<string, number> = {
     "Lab Technician": Math.round(effort * 0.35),

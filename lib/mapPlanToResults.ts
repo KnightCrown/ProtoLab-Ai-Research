@@ -1,7 +1,8 @@
 import type { LiteratureReference } from "./analyzeTypes";
-import type { ExperimentResults } from "./experimentModel";
+import type { ExperimentResults, NoveltyKind } from "./experimentModel";
 import type { MaterialRow } from "./mockData";
-import type { PipelineResult } from "./pipeline/types";
+import { flattenProtocolSteps } from "./pipeline/protocolFlatten";
+import type { LiteratureNovelty, PipelineResult } from "./pipeline/types";
 
 function litRefsToOverviewRefs(
   refs: PipelineResult["literature_qc"]["references"]
@@ -28,41 +29,62 @@ function mapMaterialsDetail(m: PipelineResult["materials"]): ExperimentResults["
   }));
 }
 
-function formatProtocolStepLine(s: PipelineResult["protocol"][number]): string {
-  const c = s.conditions;
-  const condBits = [c?.time, c?.temperature, c?.concentration, c?.other]
-    .filter((x) => x && String(x).trim())
-    .join(" · ");
-  return `${s.action} | in: ${s.inputs.join(", ")} | conditions: ${condBits} | out: ${s.output}`;
+function formatControlGroup(c: Record<string, unknown>): string {
+  const keys = Object.keys(c);
+  if (keys.length === 0) return "—";
+  return keys
+    .map((k) => {
+      const v = c[k];
+      if (v && typeof v === "object" && !Array.isArray(v)) {
+        return `${k}: ${JSON.stringify(v)}`;
+      }
+      return `${k}: ${String(v)}`;
+    })
+    .join("; ");
+}
+
+function noveltyFromLiterature(n: LiteratureNovelty): { label: string; kind: NoveltyKind } {
+  if (n === "not found") {
+    return { label: "No prior work found", kind: "no_prior" };
+  }
+  if (n === "similar work exists") {
+    return { label: "Similar work exists", kind: "similar" };
+  }
+  return { label: "Well studied", kind: "well_studied" };
+}
+
+/** One line per leaf step, in depth-first order (for export / plain fallback). */
+function allProtocolLines(protocols: PipelineResult["protocols"]): string[] {
+  return flattenProtocolSteps(protocols).map((l) => l.summary);
 }
 
 export function mapPlanToResults(plan: PipelineResult): ExperimentResults {
   const h = plan.hypothesis_analysis;
   const l = plan.literature_qc;
   const refList = litRefsToOverviewRefs(l.references);
-  const summary = [
-    l.reasoning,
-    h.measurement_method ? `**Measurement (primary):** ${h.measurement_method}` : null,
-    h.success_criteria ? `**Success criteria:** ${h.success_criteria}` : null,
-  ]
-    .filter((x) => x && String(x).trim())
-    .join("\n\n");
+  const novel = noveltyFromLiterature(l.novelty);
+  const insight = (l.reasoning && l.reasoning.trim()) || "—";
 
   const t = plan.timeline;
   const staff = plan.staffing;
 
   return {
     overview: {
-      noveltyStatus: l.novelty,
-      summary: summary || "—",
-      references: refList.length ? refList : undefined,
-      hypothesisHighlights: {
-        independent: h.independent_variables,
-        dependent: h.dependent_variables,
+      noveltyLabel: novel.label,
+      noveltyKind: novel.kind,
+      literatureInsight: insight,
+      experimentDesign: {
+        independentVariables: h.independent_variables,
+        dependentVariables: h.dependent_variables,
+        controlGroup: formatControlGroup(h.control_group),
+        experimentalGroups: h.experimental_groups,
+        measurementMethod: h.measurement_method,
+        successCriteria: h.success_criteria,
       },
+      references: refList.length ? refList : undefined,
     },
-    protocolStructured: plan.protocol,
-    protocolSteps: plan.protocol.map(formatProtocolStepLine),
+    laboratoryProtocols: plan.protocols,
+    protocolSteps: allProtocolLines(plan.protocols),
     materials: mapMaterialsForTable(plan.materials),
     materialsDetail: mapMaterialsDetail(plan.materials),
     totalCost: plan.cost_estimate.total_cost,

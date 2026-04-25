@@ -1,7 +1,7 @@
 import type OpenAI from "openai";
 import { buildValidationUserMessage, VALIDATION_SYSTEM } from "@/lib/prompts/validationPrompt";
 import { completeJson } from "@/lib/pipeline/openaiJson";
-import type { HypothesisAnalysis, PipelineLogFn, ProtocolStep, ValidationPlan } from "@/lib/pipeline/types";
+import type { HypothesisAnalysis, LaboratoryProtocol, PipelineLogFn, ValidationPlan } from "@/lib/pipeline/types";
 
 function parse(raw: Record<string, unknown>): ValidationPlan {
   const err = Array.isArray(raw.sources_of_error)
@@ -21,13 +21,13 @@ export async function generateValidation(
   openai: OpenAI,
   hypothesis: string,
   analysis: HypothesisAnalysis,
-  protocol: ProtocolStep[],
+  protocols: LaboratoryProtocol[],
   log: PipelineLogFn
 ): Promise<ValidationPlan> {
-  log("validation_generation", "start", {});
+  log("validation_generation", "start", { procedures: protocols.length });
   const raw = await completeJson(openai, {
     system: VALIDATION_SYSTEM,
-    user: buildValidationUserMessage(hypothesis, analysis, protocol),
+    user: buildValidationUserMessage(hypothesis, analysis, protocols),
     max_tokens: 1000,
   });
   const out = parse(raw);
