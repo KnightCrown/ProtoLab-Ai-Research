@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { Card } from "@/components/common/Card";
@@ -22,7 +22,7 @@ const noveltyToneClass: Record<ExperimentResults["overview"]["noveltyKind"], str
 
 function NoResultsPanel() {
   return (
-    <div className="rounded-xl border border-dashed border-gray-300 bg-white p-10 text-center shadow-sm">
+    <div className="rounded-xl border border-dashed border-[#d6d2c1] bg-[#fffdf6] p-10 text-center shadow-sm">
       <p className="text-sm font-medium text-gray-900">No plan generated yet</p>
       <p className="mt-1 text-sm text-gray-500">
         Click <span className="font-medium">Generate Experiment Plan</span> to run the multi-stage
@@ -72,10 +72,10 @@ function ProcedureStepBlock({ step, depth = 0 }: { step: ProcedureStep; depth?: 
   const hasSubs = step.sub_steps && step.sub_steps.length > 0;
   return (
     <div
-      className={depth > 0 ? "mt-4 border-l-2 border-slate-200 pl-4" : ""}
+      className={depth > 0 ? "mt-4 border-l-2 border-[#d7d3c5] pl-4" : ""}
       data-step={step.step_number}
     >
-      <div className="border-b border-gray-200 py-4 last:border-b-0">
+      <div className="border-b border-[#e6e1d2] py-4 last:border-b-0">
         <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
           {step.kind ? <span className="text-slate-600">{step.kind} · </span> : null}
           Step {step.step_number}
@@ -100,12 +100,12 @@ function CollapsibleProtocol({ p, headerName }: { p: LaboratoryProtocol; headerN
   const heading = (headerName && headerName.trim()) || p.title;
   return (
     <section
-      className="border border-gray-200 bg-white"
+      className="border border-[#d6d2c1] bg-[#fffdf6]"
       aria-labelledby={`proto-title-${p.id}`}
     >
       <button
         type="button"
-        className="flex w-full items-start justify-between gap-3 border-b border-gray-200 bg-slate-50/90 px-5 py-4 text-left transition hover:bg-slate-100/90 sm:px-8"
+        className="flex w-full items-start justify-between gap-3 border-b border-[#dfdac8] bg-[#f7f4ea] px-5 py-4 text-left transition hover:bg-[#f3efe3] sm:px-8"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         id={`proto-title-${p.id}`}
@@ -128,7 +128,7 @@ function CollapsibleProtocol({ p, headerName }: { p: LaboratoryProtocol; headerN
             <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500">Objective</h3>
             <p className="mt-2 text-sm leading-relaxed text-gray-800">{p.objective}</p>
           </div>
-          <div className="border-t border-gray-100 px-5 py-4 sm:px-8 sm:py-5">
+          <div className="border-t border-[#e6e1d2] px-5 py-4 sm:px-8 sm:py-5">
             <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500">Materials</h3>
             <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-relaxed text-gray-800">
               {p.materials.map((m) => (
@@ -136,7 +136,7 @@ function CollapsibleProtocol({ p, headerName }: { p: LaboratoryProtocol; headerN
               ))}
             </ul>
           </div>
-          <div className="border-t border-gray-200 px-5 pb-4 pt-2 sm:px-8 sm:pb-6">
+          <div className="border-t border-[#dfdac8] px-5 pb-4 pt-2 sm:px-8 sm:pb-6">
             <h3 className="mb-1 mt-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
               Procedure
             </h3>
@@ -145,7 +145,7 @@ function CollapsibleProtocol({ p, headerName }: { p: LaboratoryProtocol; headerN
             ))}
           </div>
           {p.notes && p.notes.length > 0 ? (
-            <div className="border-t border-gray-200 bg-amber-50/40 px-5 py-4 sm:px-8 sm:py-5">
+            <div className="border-t border-[#dfdac8] bg-[#f7f4ea] px-5 py-4 sm:px-8 sm:py-5">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-amber-900/80">
                 Notes
               </h3>
@@ -175,7 +175,7 @@ export function ExperimentTabContent({ activeTab, results }: ExperimentTabConten
 
   if (activeTab === "trust" && !results) {
     return (
-      <div className="rounded-xl border border-dashed border-gray-300 bg-white p-10 text-center shadow-sm">
+      <div className="rounded-xl border border-dashed border-[#d6d2c1] bg-[#fffdf6] p-10 text-center shadow-sm">
         <p className="text-sm font-medium text-gray-900">Run an experiment to see trust score</p>
         <p className="mt-1 text-sm text-gray-500">
           The trust score appears after the full plan is generated and evaluated.
@@ -208,7 +208,7 @@ export function ExperimentTabContent({ activeTab, results }: ExperimentTabConten
         {/* ── Banner: novelty + trust score ───────────────────────────── */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
           {/* Novelty / literature */}
-          <div className="flex flex-1 flex-col justify-between rounded-xl border border-gray-200 bg-white px-5 py-5 shadow-sm sm:px-6">
+          <div className="flex flex-1 flex-col justify-between rounded-xl border border-[#d6d2c1] bg-[#fffdf6] px-5 py-5 shadow-sm sm:px-6">
             <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">
               Literature novelty
             </p>
@@ -254,34 +254,34 @@ export function ExperimentTabContent({ activeTab, results }: ExperimentTabConten
 
         {/* ── System improvements applied (iterative learning) ────────── */}
         {showSystemImprovements ? (
-          <section className="relative rounded-xl border border-indigo-200 bg-indigo-50/60 px-5 py-4 pr-12 shadow-sm sm:px-6 sm:pr-14">
+          <section className="relative rounded-xl border border-[#d6d2c1] bg-[#fffdf6] px-5 py-4 pr-12 shadow-sm sm:px-6 sm:pr-14">
             <button
               type="button"
               onClick={() => setDismissedAppliedRulesKey(appliedRulesKey)}
-              className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-lg text-lg leading-none text-indigo-800 transition hover:bg-indigo-200/50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-lg text-lg leading-none text-[#5c6650] transition hover:bg-[#f3efe3] focus:outline-none focus:ring-2 focus:ring-[#bcb79f]"
               aria-label="Close system improvements"
             >
               ×
             </button>
             <div className="flex items-center gap-2 pr-1">
-              <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-indigo-600 text-[10px] font-bold text-white">
+              <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#7f8572] text-[10px] font-bold text-[#f7f6ef]">
                 ✓
               </span>
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-indigo-900">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-[#4f5843]">
                 System improvements applied
               </h2>
               <span className="ml-1 inline-flex items-center gap-1.5">
-                <span className="rounded-full bg-indigo-200/70 px-2 py-0.5 text-[10px] font-semibold text-indigo-900">
+                <span className="rounded-full bg-[#ece7d8] px-2 py-0.5 text-[10px] font-semibold text-[#4f5843]">
                   {improvementBadge}
                 </span>
                 {appliedRules.length > MAX_SHOWN ? (
-                  <span className="text-[10px] font-medium text-indigo-800/80">
+                  <span className="text-[10px] font-medium text-[#5b6550]">
                     ({appliedRules.length} total)
                   </span>
                 ) : null}
               </span>
             </div>
-            <p className="mt-1 text-xs text-indigo-900/70">
+            <p className="mt-1 text-xs text-[#616b56]">
               High-level guidance from past runs (up to {MAX_SHOWN} focus areas, varied by category
               when possible). Full rule set is still used in generation.
             </p>
@@ -289,9 +289,9 @@ export function ExperimentTabContent({ activeTab, results }: ExperimentTabConten
               {rulesShown.map((r, i) => (
                 <li
                   key={`${r.type}-${i}`}
-                  className="flex items-start gap-2 rounded-md bg-white/70 px-2.5 py-1.5 text-xs text-indigo-900 ring-1 ring-indigo-100"
+                  className="flex items-start gap-2 rounded-md bg-[#f7f4ea] px-2.5 py-1.5 text-xs text-[#4f5843] ring-1 ring-[#e6e1d2]"
                 >
-                  <span className="mt-0.5 inline-flex shrink-0 rounded bg-indigo-600/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-indigo-700">
+                  <span className="mt-0.5 inline-flex shrink-0 rounded bg-[#ece7d8] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#5e6951]">
                     {r.type}
                   </span>
                   <span className="leading-snug">{displayTextForSystemImprovement(r)}</span>
@@ -302,13 +302,13 @@ export function ExperimentTabContent({ activeTab, results }: ExperimentTabConten
         ) : null}
 
         {/* ── Experiment design ────────────────────────────────────────── */}
-        <section className="rounded-xl border border-gray-200 bg-white shadow-sm">
-          <div className="border-b border-gray-200 px-5 py-4 sm:px-6">
+        <section className="rounded-xl border border-[#d6d2c1] bg-[#fffdf6] shadow-sm">
+          <div className="border-b border-[#dfdac8] px-5 py-4 sm:px-6">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
               Experiment design
             </h2>
           </div>
-          <div className="grid gap-0 divide-y divide-gray-100 px-5 py-1 text-sm sm:grid-cols-2 sm:divide-x sm:divide-y-0 sm:px-0 sm:py-0">
+          <div className="grid gap-0 divide-y divide-[#e6e1d2] px-5 py-1 text-sm sm:grid-cols-2 sm:divide-x sm:divide-y-0 sm:px-0 sm:py-0">
             <div className="space-y-4 py-4 sm:px-6 sm:py-5">
               <div>
                 <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">Independent variables</h3>
@@ -354,13 +354,13 @@ export function ExperimentTabContent({ activeTab, results }: ExperimentTabConten
 
         {/* ── Protocol plan ────────────────────────────────────────────── */}
         {plan.length > 0 ? (
-          <section className="rounded-xl border border-gray-200 bg-white shadow-sm">
-            <div className="border-b border-gray-200 px-5 py-4 sm:px-6">
+          <section className="rounded-xl border border-[#d6d2c1] bg-[#fffdf6] shadow-sm">
+            <div className="border-b border-[#dfdac8] px-5 py-4 sm:px-6">
               <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
                 Protocol plan
               </h2>
             </div>
-            <ol className="divide-y divide-gray-100">
+            <ol className="divide-y divide-[#e6e1d2]">
               {plan.map((item, idx) => (
                 <li key={item.id} className="flex gap-4 px-5 py-4 sm:px-6">
                   <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gray-900 text-xs font-bold text-white">
@@ -380,8 +380,8 @@ export function ExperimentTabContent({ activeTab, results }: ExperimentTabConten
 
         {/* ── Materials & cost summary ──────────────────────────────────── */}
         {results.materials && results.materials.length > 0 ? (
-          <section className="rounded-xl border border-gray-200 bg-white shadow-sm">
-            <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4 sm:px-6">
+          <section className="rounded-xl border border-[#d6d2c1] bg-[#fffdf6] shadow-sm">
+            <div className="flex items-center justify-between border-b border-[#dfdac8] px-5 py-4 sm:px-6">
               <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
                 Materials &amp; cost
               </h2>
@@ -392,15 +392,15 @@ export function ExperimentTabContent({ activeTab, results }: ExperimentTabConten
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-100 bg-gray-50">
+                  <tr className="border-b border-[#e6e1d2] bg-[#f7f4ea]">
                     <th className="px-5 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 sm:px-6">Item</th>
                     <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Supplier</th>
                     <th className="px-4 py-2.5 text-right text-xs font-semibold uppercase tracking-wider text-gray-500 sm:pr-6">Est. cost</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-[#e6e1d2]">
                   {results.materials.map((m) => (
-                    <tr key={m.item} className="hover:bg-gray-50">
+                    <tr key={m.item} className="hover:bg-[#f3efe3]">
                       <td className="px-5 py-2.5 font-medium text-gray-900 sm:px-6">{m.item}</td>
                       <td className="px-4 py-2.5 text-gray-600">{m.supplier}</td>
                       <td className="px-4 py-2.5 text-right tabular-nums font-medium text-gray-900 sm:pr-6">{m.cost}</td>
@@ -410,7 +410,7 @@ export function ExperimentTabContent({ activeTab, results }: ExperimentTabConten
               </table>
             </div>
             {results.costRange ? (
-              <p className="border-t border-gray-100 px-5 py-2.5 text-right text-xs text-gray-500 sm:px-6">
+              <p className="border-t border-[#e6e1d2] px-5 py-2.5 text-right text-xs text-gray-500 sm:px-6">
                 Range: {results.costRange.min} — {results.costRange.max}
                 {results.costRange.note ? ` (${results.costRange.note})` : ""}
               </p>
@@ -420,8 +420,8 @@ export function ExperimentTabContent({ activeTab, results }: ExperimentTabConten
 
         {/* ── Timeline ─────────────────────────────────────────────────── */}
         {phases.length > 0 ? (
-          <section className="rounded-xl border border-gray-200 bg-white shadow-sm">
-            <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4 sm:px-6">
+          <section className="rounded-xl border border-[#d6d2c1] bg-[#fffdf6] shadow-sm">
+            <div className="flex items-center justify-between border-b border-[#dfdac8] px-5 py-4 sm:px-6">
               <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
                 Timeline
               </h2>
@@ -432,15 +432,15 @@ export function ExperimentTabContent({ activeTab, results }: ExperimentTabConten
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-100 bg-gray-50">
+                  <tr className="border-b border-[#e6e1d2] bg-[#f7f4ea]">
                     <th className="px-5 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 sm:px-6">Phase</th>
                     <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Deliverables</th>
                     <th className="px-4 py-2.5 text-right text-xs font-semibold uppercase tracking-wider text-gray-500 sm:pr-6">Duration</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-[#e6e1d2]">
                   {phases.map((phase, idx) => (
-                    <tr key={`${phase.name}-${idx}`} className="align-top hover:bg-gray-50">
+                    <tr key={`${phase.name}-${idx}`} className="align-top hover:bg-[#f3efe3]">
                       <td className="px-5 py-3 font-semibold text-gray-900 sm:px-6">{phase.name}</td>
                       <td className="px-4 py-3 text-gray-600">
                         {phase.deliverables.length > 1 ? (
@@ -467,7 +467,7 @@ export function ExperimentTabContent({ activeTab, results }: ExperimentTabConten
 
         {/* ── References ───────────────────────────────────────────────── */}
         {refs.length > 0 ? (
-          <section className="rounded-xl border border-gray-200 bg-gray-50 px-5 py-5 shadow-sm sm:px-6">
+          <section className="rounded-xl border border-[#d6d2c1] bg-[#fffdf6] px-5 py-5 shadow-sm sm:px-6">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
               References
             </h2>
@@ -500,7 +500,7 @@ export function ExperimentTabContent({ activeTab, results }: ExperimentTabConten
       return (
         <div className="w-full space-y-6">
           {plan && plan.length > 0 ? (
-            <section className="border border-gray-200 bg-white px-5 py-4 sm:px-8 sm:py-5">
+            <section className="border border-[#d6d2c1] bg-[#fffdf6] px-5 py-4 sm:px-8 sm:py-5">
               <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
                 Experiment plan
               </h2>
@@ -524,12 +524,12 @@ export function ExperimentTabContent({ activeTab, results }: ExperimentTabConten
       );
     }
     return (
-      <div className="w-full max-w-4xl border border-gray-200 bg-white px-5 py-6 sm:px-8">
+      <div className="w-full max-w-4xl border border-[#d6d2c1] bg-[#fffdf6] px-5 py-6 sm:px-8">
         <h2 className="text-sm font-semibold text-gray-900">Protocol (plain text)</h2>
         <ol className="mt-4 space-y-3 text-sm leading-7 text-gray-800">
           {results.protocolSteps.map((step, index) => (
             <li key={index} className="flex gap-3">
-              <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-semibold text-gray-700">
+              <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#ece7d8] text-xs font-semibold text-[#5e6652]">
                 {index + 1}
               </span>
               <span>{step}</span>
@@ -580,7 +580,7 @@ export function ExperimentTabContent({ activeTab, results }: ExperimentTabConten
                 return (
                   <li
                     key={m.name + m.sourceUrl}
-                    className="border-b border-gray-100 pb-4 last:border-0"
+                    className="border-b border-[#e6e1d2] pb-4 last:border-0"
                   >
                     <p className="font-medium text-gray-900">{m.productName || m.name}</p>
                     <p className="text-xs text-gray-500">{m.spec}</p>
@@ -605,7 +605,7 @@ export function ExperimentTabContent({ activeTab, results }: ExperimentTabConten
                         ) : (
                           <span
                             title="No reliable price in search results"
-                            className="inline-flex items-center rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-600 ring-1 ring-inset ring-gray-300/80"
+                            className="inline-flex items-center rounded-full bg-[#ece7d8] px-1.5 py-0.5 text-[10px] font-medium text-[#5f6753] ring-1 ring-inset ring-[#d3ccb9]"
                           >
                             unavailable
                           </span>
@@ -616,7 +616,7 @@ export function ExperimentTabContent({ activeTab, results }: ExperimentTabConten
                           href={m.sourceUrl}
                           target="_blank"
                           rel="noreferrer"
-                          className="inline-flex shrink-0 self-end sm:self-auto rounded-md bg-gray-900 px-3 py-1.5 text-center text-xs font-semibold text-white transition hover:bg-gray-800 sm:ml-auto"
+                          className="inline-flex shrink-0 self-end sm:self-auto rounded-md bg-[#7f8572] px-3 py-1.5 text-center text-xs font-semibold text-[#f7f6ef] transition hover:bg-[#6f7663] sm:ml-auto"
                         >
                           Buy now
                         </a>
@@ -625,7 +625,7 @@ export function ExperimentTabContent({ activeTab, results }: ExperimentTabConten
                           type="button"
                           disabled
                           title="No product link in search results"
-                          className="inline-flex shrink-0 cursor-not-allowed self-end sm:self-auto rounded-md border border-gray-200 bg-gray-50 px-3 py-1.5 text-center text-xs font-medium text-gray-400 sm:ml-auto"
+                          className="inline-flex shrink-0 cursor-not-allowed self-end sm:self-auto rounded-md border border-[#d6d2c1] bg-[#f7f4ea] px-3 py-1.5 text-center text-xs font-medium text-[#9a9787] sm:ml-auto"
                         >
                           Buy now
                         </button>
@@ -641,7 +641,7 @@ export function ExperimentTabContent({ activeTab, results }: ExperimentTabConten
           <Card title="Cost breakdown">
             <ul className="space-y-2 text-sm text-gray-700">
               {results.costLineItems.map((row) => (
-                <li key={row.label} className="flex justify-between gap-4 border-b border-gray-100 py-1">
+                <li key={row.label} className="flex justify-between gap-4 border-b border-[#e6e1d2] py-1">
                   <span>{row.label}</span>
                   <span className="font-medium text-gray-900">{row.amount}</span>
                 </li>
@@ -682,8 +682,8 @@ export function ExperimentTabContent({ activeTab, results }: ExperimentTabConten
     return (
       <div className="space-y-5">
         {/* ── Project schedule ──────────────────────────────────────────── */}
-        <section className="border border-gray-200 bg-white">
-          <div className="border-b border-gray-200 px-5 py-3 sm:px-8">
+        <section className="border border-[#d6d2c1] bg-[#fffdf6]">
+          <div className="border-b border-[#dfdac8] px-5 py-3 sm:px-8">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
               Project schedule
             </h2>
@@ -696,17 +696,17 @@ export function ExperimentTabContent({ activeTab, results }: ExperimentTabConten
           </div>
 
           {perProto.length > 0 ? (
-            <div className="border-b border-gray-200 px-5 py-4 sm:px-8">
+            <div className="border-b border-[#dfdac8] px-5 py-4 sm:px-8">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500">Per-protocol duration</h3>
               <div className="mt-2 overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-gray-100 text-left text-xs text-gray-500">
+                    <tr className="border-b border-[#e6e1d2] text-left text-xs text-gray-500">
                       <th className="py-2 pr-3 font-medium">SOP</th>
                       <th className="py-2 pl-2 text-right font-medium">Span</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
+                  <tbody className="divide-y divide-[#e6e1d2]">
                     {perProto.map((row) => (
                       <tr key={row.id} className="text-gray-800">
                         <td className="py-2 pr-2 font-medium">{row.name}</td>
@@ -719,7 +719,7 @@ export function ExperimentTabContent({ activeTab, results }: ExperimentTabConten
             </div>
           ) : null}
           {dConstraints.length > 0 ? (
-            <div className="border-b border-slate-100 bg-slate-50/50 px-5 py-3 sm:px-8">
+            <div className="border-b border-[#e6e1d2] bg-[#f7f4ea] px-5 py-3 sm:px-8">
               <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">Duration grounding</p>
               <ul className="mt-2 list-disc space-y-1 pl-4 text-sm text-gray-600">
                 {dConstraints.map((c, i) => (
@@ -735,7 +735,7 @@ export function ExperimentTabContent({ activeTab, results }: ExperimentTabConten
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-200 bg-slate-50">
+                  <tr className="border-b border-[#dfdac8] bg-[#f7f4ea]">
                     <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 sm:px-8">
                       Phase
                     </th>
@@ -750,11 +750,11 @@ export function ExperimentTabContent({ activeTab, results }: ExperimentTabConten
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-[#e6e1d2]">
                   {phases.map((phase, idx) => (
                     <tr
                       key={`${phase.name}-${idx}`}
-                      className="align-top transition-colors hover:bg-slate-50/60"
+                      className="align-top transition-colors hover:bg-[#f3efe3]"
                     >
                       <td className="px-5 py-3 font-medium text-gray-900 sm:px-8">
                         {phase.name}
@@ -787,7 +787,7 @@ export function ExperimentTabContent({ activeTab, results }: ExperimentTabConten
           )}
 
           {results.timelineWebNote ? (
-            <p className="border-t border-gray-100 px-5 py-2 text-xs text-gray-400 sm:px-8">
+            <p className="border-t border-[#e6e1d2] px-5 py-2 text-xs text-gray-400 sm:px-8">
               Source note: {results.timelineWebNote.slice(0, 300)}
             </p>
           ) : null}
@@ -795,8 +795,8 @@ export function ExperimentTabContent({ activeTab, results }: ExperimentTabConten
 
         {/* ── Staffing ──────────────────────────────────────────────────── */}
         {sp ? (
-          <section className="border border-gray-200 bg-white">
-            <div className="border-b border-gray-200 px-5 py-3 sm:px-8">
+          <section className="border border-[#d6d2c1] bg-[#fffdf6]">
+            <div className="border-b border-[#dfdac8] px-5 py-3 sm:px-8">
               <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
                 Staffing
               </h2>
@@ -810,7 +810,7 @@ export function ExperimentTabContent({ activeTab, results }: ExperimentTabConten
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-200 bg-slate-50">
+                  <tr className="border-b border-[#dfdac8] bg-[#f7f4ea]">
                     <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 sm:px-8">
                       Role
                     </th>
@@ -819,9 +819,9 @@ export function ExperimentTabContent({ activeTab, results }: ExperimentTabConten
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-[#e6e1d2]">
                   {Object.entries(sp.hours_per_role).map(([role, hours]) => (
-                    <tr key={role} className="hover:bg-slate-50/60">
+                    <tr key={role} className="hover:bg-[#f3efe3]">
                       <td className="px-5 py-3 text-gray-900 sm:px-8">{role}</td>
                       <td className="px-4 py-3 text-right tabular-nums text-gray-700 sm:pr-8">
                         {hours}h
@@ -836,7 +836,7 @@ export function ExperimentTabContent({ activeTab, results }: ExperimentTabConten
 
         {/* ── Dependencies ──────────────────────────────────────────────── */}
         {deps.length > 0 ? (
-          <section className="border border-gray-200 bg-white px-5 py-4 sm:px-8">
+          <section className="border border-[#d6d2c1] bg-[#fffdf6] px-5 py-4 sm:px-8">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
               Dependencies
             </h2>
@@ -865,7 +865,7 @@ export function ExperimentTabContent({ activeTab, results }: ExperimentTabConten
     const tone = trustTone(trust.score);
     return (
       <div className="space-y-4">
-        <section className={`rounded-xl border bg-white p-6 shadow-sm ring-1 ${tone.ring}`}>
+        <section className={`rounded-xl border border-[#d6d2c1] bg-[#fffdf6] p-6 shadow-sm ring-1 ${tone.ring}`}>
           <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">Trust score</p>
           <p className={`mt-2 text-4xl font-extrabold tracking-tight sm:text-5xl ${tone.text}`}>
             {trust.score} / 100
