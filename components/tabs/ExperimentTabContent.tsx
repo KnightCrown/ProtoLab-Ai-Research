@@ -112,14 +112,14 @@ function CollapsibleProtocol({ p }: { p: LaboratoryProtocol }) {
   return (
     <section
       className="border border-gray-200 bg-white"
-      aria-labelledby={`proto-title-${p.protocol_id}`}
+      aria-labelledby={`proto-title-${p.id}`}
     >
       <button
         type="button"
         className="flex w-full items-start justify-between gap-3 border-b border-gray-200 bg-slate-50/90 px-5 py-4 text-left transition hover:bg-slate-100/90 sm:px-8"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        id={`proto-title-${p.protocol_id}`}
+        id={`proto-title-${p.id}`}
       >
         <span className="text-lg font-bold tracking-tight text-gray-900 sm:text-xl">{p.title}</span>
         <span
@@ -152,17 +152,17 @@ function CollapsibleProtocol({ p }: { p: LaboratoryProtocol }) {
               Procedure
             </h3>
             {p.procedure.map((step, i) => (
-              <ProcedureStepBlock key={`${p.protocol_id}-p-${i}`} step={step} />
+              <ProcedureStepBlock key={`${p.id}-p-${i}`} step={step} />
             ))}
           </div>
-          {p.notes_and_calculations && p.notes_and_calculations.length > 0 ? (
+          {p.notes && p.notes.length > 0 ? (
             <div className="border-t border-gray-200 bg-amber-50/40 px-5 py-4 sm:px-8 sm:py-5">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-amber-900/80">
-                Notes and calculations
+                Notes
               </h3>
               <ul className="mt-2 list-disc space-y-2 pl-5 text-sm leading-relaxed text-gray-800">
-                {p.notes_and_calculations.map((n, i) => (
-                  <li key={`${p.protocol_id}-n-${i}`} className="whitespace-pre-wrap">
+                {p.notes.map((n, i) => (
+                  <li key={`${p.id}-n-${i}`} className="whitespace-pre-wrap">
                     {n}
                   </li>
                 ))}
@@ -286,12 +286,32 @@ export function ExperimentTabContent({ activeTab, results }: ExperimentTabConten
   }
 
   if (activeTab === "protocol") {
+    const plan = results.protocolPlan;
     const prots = results.laboratoryProtocols;
     if (prots && prots.length > 0) {
       return (
         <div className="w-full space-y-6">
+          {plan && plan.length > 0 ? (
+            <section className="border border-gray-200 bg-white px-5 py-4 sm:px-8 sm:py-5">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                Experiment plan
+              </h2>
+              <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm text-gray-800">
+                {plan.map((item, idx) => (
+                  <li key={item.id} className="pl-1">
+                    <span className="font-medium text-gray-900">
+                      Protocol {idx + 1}: {item.name}
+                    </span>
+                    {item.description ? (
+                      <p className="mt-1 text-gray-600">{item.description}</p>
+                    ) : null}
+                  </li>
+                ))}
+              </ol>
+            </section>
+          ) : null}
           {prots.map((p) => (
-            <CollapsibleProtocol key={p.protocol_id} p={p} />
+            <CollapsibleProtocol key={p.id} p={p} />
           ))}
         </div>
       );

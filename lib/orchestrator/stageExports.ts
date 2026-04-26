@@ -1,7 +1,8 @@
 export { runPipeline, PipelineStageError } from "./runPipeline";
 export { analyzeHypothesis } from "@/lib/pipeline/analyzeHypothesis";
 export { literatureQC } from "@/lib/pipeline/literatureQC";
-export { generateProtocol } from "@/lib/pipeline/generateProtocol";
+export { planProtocols } from "@/lib/pipeline/planProtocols";
+export { generateSingleProtocol } from "@/lib/pipeline/generateProtocol";
 export { extractMaterialsFromProtocol } from "@/lib/pipeline/extractMaterialsFromProtocol";
 export { researchMaterials } from "@/lib/pipeline/researchMaterials";
 export { generateCost } from "@/lib/pipeline/generateCost";

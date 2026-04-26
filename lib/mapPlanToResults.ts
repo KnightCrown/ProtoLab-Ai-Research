@@ -83,6 +83,7 @@ export function mapPlanToResults(plan: PipelineResult): ExperimentResults {
       },
       references: refList.length ? refList : undefined,
     },
+    protocolPlan: plan.protocol_plan,
     laboratoryProtocols: plan.protocols,
     protocolSteps: allProtocolLines(plan.protocols),
     materials: mapMaterialsForTable(plan.materials),

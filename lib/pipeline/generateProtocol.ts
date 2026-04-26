@@ -1,9 +1,9 @@
 import type OpenAI from "openai";
 import {
-  buildProtocolSystemMessage,
-  buildProtocolUserMessage,
+  buildSingleProtocolSystemMessage,
+  buildSingleProtocolUserMessage,
 } from "@/lib/prompts/protocolPrompt";
-import { loadProtocolExample } from "@/lib/pipeline/loadProtocolExample";
+import type { ProtocolExamplePayload } from "@/lib/pipeline/loadProtocolExample";
 import type { ProtocolRulesPayload } from "@/lib/pipeline/loadProtocolRules";
 import { completeJson } from "@/lib/pipeline/openaiJson";
 import { countLeafSteps } from "@/lib/pipeline/protocolFlatten";
@@ -13,6 +13,7 @@ import type {
   PipelineLogFn,
   ProcedureStep,
   ProtocolConditions,
+  ProtocolPlanItem,
 } from "@/lib/pipeline/types";
 
 function parseConditions(x: unknown): ProtocolConditions | undefined {
@@ -84,9 +85,44 @@ function parseProcedureStep(o: Record<string, unknown>, index: number): Procedur
   return out;
 }
 
-function parseProtocol(raw: Record<string, unknown>, index: number): LaboratoryProtocol {
-  const id = String(raw.protocol_id || "").trim() || `proc-${index + 1}`;
-  const title = String(raw.title || `Procedure ${index + 1}`).trim() || `Procedure ${index + 1}`;
+function parseNotes(raw: Record<string, unknown>): string[] | undefined {
+  if (raw.notes != null) {
+    if (Array.isArray(raw.notes)) {
+      const n = (raw.notes as unknown[]).map((x) => String(x).trim()).filter(Boolean);
+      return n.length ? n : undefined;
+    }
+    const t = String(raw.notes).trim();
+    return t ? [t] : undefined;
+  }
+  if (raw.notes_and_calculations != null) {
+    if (Array.isArray(raw.notes_and_calculations)) {
+      const n = (raw.notes_and_calculations as unknown[]).map((x) => String(x).trim()).filter(Boolean);
+      return n.length ? n : undefined;
+    }
+    const t = String(raw.notes_and_calculations).trim();
+    return t ? [t] : undefined;
+  }
+  return undefined;
+}
+
+/**
+ * Unwrap a single protocol object from the model (may be nested under "protocol" by mistake).
+ */
+function unwrapSingle(raw: Record<string, unknown>): Record<string, unknown> {
+  const p = raw.protocol;
+  if (p && typeof p === "object" && !Array.isArray(p)) {
+    return p as Record<string, unknown>;
+  }
+  return raw;
+}
+
+function parseSingleProtocol(
+  rawIn: Record<string, unknown>,
+  planItem: ProtocolPlanItem
+): LaboratoryProtocol {
+  const raw = unwrapSingle(rawIn);
+  const title =
+    String(raw.title || planItem.name).trim() || planItem.name;
   const objective = String(raw.objective || "").trim() || "—";
   const matRaw = Array.isArray(raw.materials) ? (raw.materials as unknown[]) : [];
   const materials = matRaw.map((m) => String(m).trim()).filter(Boolean);
@@ -95,15 +131,6 @@ function parseProtocol(raw: Record<string, unknown>, index: number): LaboratoryP
   const procedure = arr.map((s, j) => parseProcedureStep(s as Record<string, unknown>, j));
   if (procedure.length < 1) {
     throw new Error(`Protocol "${title}" must include a non-empty procedure[]`);
-  }
-  let notes: string[] | undefined;
-  if (raw.notes_and_calculations != null) {
-    if (Array.isArray(raw.notes_and_calculations)) {
-      notes = (raw.notes_and_calculations as unknown[]).map((n) => String(n).trim()).filter(Boolean);
-    } else {
-      const t = String(raw.notes_and_calculations).trim();
-      if (t) notes = [t];
-    }
   }
   for (const step of procedure) {
     if (!hasLeafContent(step)) {
@@ -117,47 +144,43 @@ function parseProtocol(raw: Record<string, unknown>, index: number): LaboratoryP
       `Protocol "${title}": list at least 2 materials (reagents, consumables, or key equipment)`
     );
   }
+  const notes = parseNotes(raw);
+  const fromModel = String(raw.id || "").trim();
+  const id = fromModel && fromModel === planItem.id ? fromModel : planItem.id;
   const proto: LaboratoryProtocol = {
-    protocol_id: id,
+    id,
     title,
     objective,
     materials,
     procedure,
   };
-  if (notes?.length) proto.notes_and_calculations = notes;
+  if (notes?.length) proto.notes = notes;
   return proto;
 }
 
-export async function generateProtocol(
+export async function generateSingleProtocol(
   openai: OpenAI,
   hypothesis: string,
   analysis: HypothesisAnalysis,
+  planItem: ProtocolPlanItem,
   rules: ProtocolRulesPayload,
+  example: ProtocolExamplePayload,
   log: PipelineLogFn
-): Promise<LaboratoryProtocol[]> {
-  const example = await loadProtocolExample();
-  log("protocol_generation", "start", { rules_version: rules.version, example_version: example.version });
+): Promise<LaboratoryProtocol> {
+  const label = planItem.id;
+  log("protocol_generation", "start", { plan_id: label, name: planItem.name });
   const raw = await completeJson(openai, {
-    system: buildProtocolSystemMessage(rules, example),
-    user: buildProtocolUserMessage(hypothesis, analysis),
-    max_tokens: 12000,
+    system: buildSingleProtocolSystemMessage(rules, example),
+    user: buildSingleProtocolUserMessage(hypothesis, analysis, planItem),
+    max_tokens: 6000,
     model: "gpt-4o-mini",
   });
-  const protocolsRaw = raw.protocols;
-  if (!Array.isArray(protocolsRaw) || protocolsRaw.length < 1) {
-    throw new Error("Protocol generation must return a non-empty protocols array");
+  const proto = parseSingleProtocol(raw as Record<string, unknown>, planItem);
+  if (countLeafSteps([proto]) < 3) {
+    throw new Error(
+      `Protocol "${proto.title}": procedure needs at least 3 leaf steps (or equivalent nested steps)`
+    );
   }
-  const protocols = protocolsRaw.map((p, i) => parseProtocol(p as Record<string, unknown>, i));
-  for (const p of protocols) {
-    if (countLeafSteps([p]) < 3) {
-      throw new Error(
-        `Protocol "${p.title}": add detail so the procedure has at least 3 leaf steps (or equivalent nested steps)`
-      );
-    }
-  }
-  log("protocol_generation", "complete", {
-    procedureCount: protocols.length,
-    leaves: countLeafSteps(protocols),
-  });
-  return protocols;
+  log("protocol_generation", "complete", { plan_id: label, leaves: countLeafSteps([proto]) });
+  return { ...proto, id: planItem.id };
 }

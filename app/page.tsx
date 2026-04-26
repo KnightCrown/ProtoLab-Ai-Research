@@ -11,15 +11,16 @@ import type { PipelineResult } from "@/lib/pipeline/types";
 import { navItems, TabId } from "@/lib/mockData";
 
 const LOADING_PHASES = [
-  "1/9 Analyzing hypothesis…",
-  "2/9 Literature & novelty…",
-  "3/9 Generating protocol (rulebook)…",
-  "4/9 Extracting materials from protocol…",
-  "5/9 Researching suppliers & prices (Tavily)…",
-  "6/9 Building cost model…",
-  "7/9 Timeline & step durations (Tavily assist)…",
-  "8/9 Estimating staffing…",
-  "9/9 Defining validation…",
+  "1/10 Analyzing hypothesis…",
+  "2/10 Literature & novelty…",
+  "3/10 Planning required protocols…",
+  "4/10 Generating each protocol (SOP)…",
+  "5/10 Extracting materials from protocols…",
+  "6/10 Researching suppliers & prices (Tavily)…",
+  "7/10 Building cost model…",
+  "8/10 Timeline & step durations (Tavily assist)…",
+  "9/10 Estimating staffing…",
+  "10/10 Defining validation…",
 ] as const;
 
 function newId(): string {

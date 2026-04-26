@@ -27,7 +27,7 @@ export async function loadProtocolRules(): Promise<ProtocolRulesPayload> {
   return {
     full_text,
     constraints_bullets: extractBullets(full_text),
-    version: "0.6.0",
+    version: "0.6.1",
   };
 }
 

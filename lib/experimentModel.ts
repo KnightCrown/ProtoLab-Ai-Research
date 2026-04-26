@@ -1,6 +1,12 @@
 import type { LiteratureReference } from "./analyzeTypes";
 import type { MaterialRow, TrustIssue } from "./mockData";
-import type { LaboratoryProtocol, StaffingPlan, StepTimeline, ValidationPlan } from "./pipeline/types";
+import type {
+  LaboratoryProtocol,
+  ProtocolPlanItem,
+  StaffingPlan,
+  StepTimeline,
+  ValidationPlan,
+} from "./pipeline/types";
 
 /** Maps literature novelty to Overview accent and primary label */
 export type NoveltyKind = "no_prior" | "similar" | "well_studied";
@@ -34,7 +40,9 @@ export type ExperimentResults = {
     experimentDesign: ExperimentDesignOverview;
     references?: LiteratureReference[];
   };
-  /** One or more lab-manual procedures from the pipeline */
+  /** Planned procedure list (before full SOP text) */
+  protocolPlan?: ProtocolPlanItem[];
+  /** Full protocols, one per plan item, same order */
   laboratoryProtocols?: LaboratoryProtocol[];
   /** Flattened one-line per step (all procedures), for search / compact copy */
   protocolSteps: string[];

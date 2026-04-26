@@ -51,20 +51,25 @@ export type ProcedureStep = {
 /** @deprecated alias — same as ProcedureStep */
 export type ProtocolStep = ProcedureStep;
 
+/** Planner output: distinct procedures to generate in order. */
+export type ProtocolPlanItem = {
+  id: string;
+  name: string;
+  description: string;
+};
+
 /**
- * One executable procedure. Procedure is an ordered list of steps; optional notes block at end.
+ * One full executable SOP, generated in isolation for one plan item.
  */
 export type LaboratoryProtocol = {
-  /** Stable id for UI keys, e.g. "proc-1" */
-  protocol_id: string;
+  /** Matches ProtocolPlanItem.id */
+  id: string;
   title: string;
   objective: string;
-  /** Reagents, consumables, equipment—specific lines as in a real SOP */
   materials: string[];
-  /** Top-level procedure steps; may nest sub_steps for logical grouping */
   procedure: ProcedureStep[];
-  /** Optional end section: bench notes, formulas, acceptance criteria, etc. */
-  notes_and_calculations?: string[];
+  /** Formulas, acceptance, logbook — concise only */
+  notes?: string[];
 };
 
 /** Flattened line for schedulers and timeline fallback (one row per “leaf” step). */
@@ -145,7 +150,9 @@ export type ValidationPlan = {
 export type PipelineResult = {
   hypothesis_analysis: HypothesisAnalysis;
   literature_qc: LiteratureQC;
-  /** One or more lab-manual–grade procedures */
+  /** LLM: ordered list of required procedures (planning stage) */
+  protocol_plan: ProtocolPlanItem[];
+  /** One full protocol per plan item, same order (generation stage) */
   protocols: LaboratoryProtocol[];
   materials_extracted: ExtractedMaterial[];
   /** Grounded in Tavily snippets; used for cost */
