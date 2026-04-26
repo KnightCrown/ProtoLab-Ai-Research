@@ -5,7 +5,8 @@ import { Card } from "@/components/common/Card";
 import { DataTable } from "@/components/common/DataTable";
 import type { ExperimentResults } from "@/lib/experimentModel";
 import type { TabId } from "@/lib/mockData";
-import type { LaboratoryProtocol, ProcedureStep, ProtocolConditions } from "@/lib/pipeline/types";
+import { procedureStepToNarrative } from "@/lib/procedureNarrative";
+import type { LaboratoryProtocol, ProcedureStep } from "@/lib/pipeline/types";
 
 const noveltyToneClass: Record<ExperimentResults["overview"]["noveltyKind"], string> = {
   no_prior: "text-red-600",
@@ -30,18 +31,9 @@ type ExperimentTabContentProps = {
   results: ExperimentResults | null;
 };
 
-function formatConditionLines(c: ProtocolConditions | undefined): string[] {
-  if (!c) return [];
-  return [
-    c.temperature ? `Temperature: ${c.temperature}` : null,
-    c.time ? `Time: ${c.time}` : null,
-    c.concentration ? `Concentration: ${c.concentration}` : null,
-    c.other ? `Other: ${c.other}` : null,
-  ].filter((x): x is string => Boolean(x));
-}
-
 function ProcedureStepBlock({ step, depth = 0 }: { step: ProcedureStep; depth?: number }) {
-  const condLines = formatConditionLines(step.conditions);
+  const narrative = procedureStepToNarrative(step);
+  const hasSubs = step.sub_steps && step.sub_steps.length > 0;
   return (
     <div
       className={depth > 0 ? "mt-4 border-l-2 border-slate-200 pl-4" : ""}
@@ -52,63 +44,24 @@ function ProcedureStepBlock({ step, depth = 0 }: { step: ProcedureStep; depth?: 
           {step.kind ? <span className="text-slate-600">{step.kind} · </span> : null}
           Step {step.step_number}
         </p>
-        {step.text ? (
-          <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-gray-800">{step.text}</p>
-        ) : null}
-        {step.action ? (
-          <p className="mt-2 text-sm leading-relaxed text-gray-800">
-            <span className="font-semibold text-gray-900">Action: </span>
-            {step.action}
-          </p>
-        ) : null}
-        {step.inputs && step.inputs.length > 0 ? (
-          <div className="mt-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Inputs</p>
-            <ul className="mt-1 list-disc pl-5 text-sm text-gray-800">
-              {step.inputs.map((x) => (
-                <li key={x}>{x}</li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
-        {step.quantities ? (
-          <p className="mt-2 text-sm">
-            <span className="font-semibold text-gray-900">Quantities: </span>
-            <span className="font-mono text-[13px] text-gray-900">{step.quantities}</span>
-          </p>
-        ) : null}
-        {condLines.length > 0 ? (
-          <div className="mt-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Conditions</p>
-            <ul className="mt-1 list-disc pl-5 text-sm text-gray-700">
-              {condLines.map((line) => (
-                <li key={line}>{line}</li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
-        {step.output ? (
-          <p className="mt-2 text-sm leading-relaxed text-gray-800">
-            <span className="font-semibold text-gray-900">Output: </span>
-            {step.output}
-          </p>
-        ) : null}
-        {step.observation ? (
-          <p className="mt-2 text-sm leading-relaxed text-gray-800">
-            <span className="font-semibold text-gray-900">Observation: </span>
-            {step.observation}
-          </p>
-        ) : null}
-        {step.sub_steps?.map((ss, i) => (
-          <ProcedureStepBlock key={`${step.step_number}-sub-${i}`} step={ss} depth={depth + 1} />
-        ))}
+        {narrative && narrative !== "—" ? (
+          <p className="mt-2 text-sm leading-relaxed text-gray-800">{narrative}</p>
+        ) : hasSubs ? null : (
+          <p className="mt-2 text-sm text-gray-500">—</p>
+        )}
+        {hasSubs
+          ? step.sub_steps!.map((ss, i) => (
+              <ProcedureStepBlock key={`${step.step_number}-sub-${i}`} step={ss} depth={depth + 1} />
+            ))
+          : null}
       </div>
     </div>
   );
 }
 
-function CollapsibleProtocol({ p }: { p: LaboratoryProtocol }) {
+function CollapsibleProtocol({ p, headerName }: { p: LaboratoryProtocol; headerName?: string }) {
   const [open, setOpen] = useState(true);
+  const heading = (headerName && headerName.trim()) || p.title;
   return (
     <section
       className="border border-gray-200 bg-white"
@@ -121,7 +74,7 @@ function CollapsibleProtocol({ p }: { p: LaboratoryProtocol }) {
         aria-expanded={open}
         id={`proto-title-${p.id}`}
       >
-        <span className="text-lg font-bold tracking-tight text-gray-900 sm:text-xl">{p.title}</span>
+        <span className="text-lg font-bold tracking-tight text-gray-900 sm:text-xl">{heading}</span>
         <span
           className="mt-0.5 shrink-0 text-slate-500"
           aria-hidden
@@ -297,11 +250,9 @@ export function ExperimentTabContent({ activeTab, results }: ExperimentTabConten
                 Experiment plan
               </h2>
               <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm text-gray-800">
-                {plan.map((item, idx) => (
+                {plan.map((item) => (
                   <li key={item.id} className="pl-1">
-                    <span className="font-medium text-gray-900">
-                      Protocol {idx + 1}: {item.name}
-                    </span>
+                    <span className="font-medium text-gray-900">{item.name}</span>
                     {item.description ? (
                       <p className="mt-1 text-gray-600">{item.description}</p>
                     ) : null}
@@ -310,9 +261,10 @@ export function ExperimentTabContent({ activeTab, results }: ExperimentTabConten
               </ol>
             </section>
           ) : null}
-          {prots.map((p) => (
-            <CollapsibleProtocol key={p.id} p={p} />
-          ))}
+          {prots.map((p) => {
+            const fromPlan = plan?.find((x) => x.id === p.id)?.name;
+            return <CollapsibleProtocol key={p.id} p={p} headerName={fromPlan} />;
+          })}
         </div>
       );
     }

@@ -19,7 +19,7 @@ const SINGLE_SCHEMA = `{
 ProcedureStep: {
   "step_number": number,
   "kind"?: string,
-  "text"?: string,
+  "text": string (primary narrative for this step; required when step is a leaf),
   "action"?: string,
   "inputs"?: string[],
   "quantities"?: string,
@@ -31,14 +31,21 @@ ProcedureStep: {
 
 const WRITING_DIRECTIVES = `## Writing directives (highest priority)
 
-**Goal: precise, unambiguous, executable steps—not long protocols.**
+**Goal: one publication-grade SOP. Precise, unambiguous, executable steps.**
 
-1. This JSON documents **one** procedure only. It must be **self-contained** (a technician can run it without the other protocols, except where you state inputs from prior steps in short cross-refs).
-2. **Completeness without padding** — each step pass the technician test; add only missing facts.
-3. **Anti-verbosity** — no filler, no repeated context from the hypothesis unless one line is needed to disambiguate.
-4. **Numbers and units** where relevant. **Notes** = concise formulas / acceptance / log only.
+1. **title** in JSON: must be the same **specific, methods-style** title as the planned protocol (the \`name\` in the user message), or a trivial wording polish only. **Never** a generic one-liner; match the same level of specificity (technique + target + platform as appropriate).
 
-Use key **procedure** (not "steps"). Optional **notes** array. **id** in JSON must match the planned protocol id given in the user message. ${SINGLE_SCHEMA}`;
+2. **procedure steps — use \`text\` (required per step, unless a step is a pure sub-step group):**  
+   Each step’s **\`text\` field** must be the full sentence (or at most two sentences) exactly as in a *Methods* section: include **all** values, **units** (e.g. µL, mg/mL, °C, min), and clear purpose. Examples of tone: *Cut Whatman filter paper into 5 cm × 5 cm square pieces to serve as the substrate for the biosensor.* / *Add 10 µL of anti-CRP antibody solution (1 mg/mL in PBS) to each electrode and incubate at 4 °C for 30 minutes to allow antibody immobilization.*  
+   Use \`action\`/\`inputs\`/\`quantities\`/\`conditions\` when helpful for tools, but **\`text\` must be complete** on its own; do not emit fragmentary or telegraphic labels alone.
+
+3. For mechanical work (placement, contact): end with a short quality clause if relevant (*ensuring firm, stable contact with the paper surface*).
+
+4. This JSON documents **one** procedure. Self-contained. **Notes** = formulas/acceptance only.
+
+5. **id** in JSON must match the plan. ${SINGLE_SCHEMA}
+
+**Field priority — the UI uses \`text\` for display; write it as the final protocol prose.**`;
 
 export function buildSingleProtocolSystemMessage(
   rules: ProtocolRulesPayload,
@@ -57,7 +64,7 @@ ${exampleBlock}
 ${WRITING_DIRECTIVES}
 
 ## Output
-Return one JSON object with keys: id, title, objective, materials, procedure, and optionally notes. No markdown. No extra keys.`;
+Return one JSON object with keys: id, title, objective, materials, procedure, and optionally notes. \`title\` must follow the plan \`name\` specificity. Every procedure line must include a strong **text** field as defined above. No markdown. No extra keys.`;
 }
 
 export function buildSingleProtocolUserMessage(
@@ -77,5 +84,6 @@ THIS PLANNED PROTOCOL (write the full SOP for **only** this one):
 - **description:** ${plan.description}
 
 The **id** field in your JSON must equal "${plan.id}".
-**title** may match or refine "${plan.name}" for clarity.`;
+**title** in JSON should match this planned name (verbatim except minor copy-edits): **${plan.name}**
+The SOP is only this procedure; the title is the cover-page name.`;
 }
