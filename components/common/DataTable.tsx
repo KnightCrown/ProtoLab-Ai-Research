@@ -16,9 +16,9 @@ export function DataTable<T extends Record<string, ReactNode>>({
   rows,
 }: DataTableProps<T>) {
   return (
-    <div className="overflow-hidden rounded-lg border border-gray-200">
-      <table className="min-w-full divide-y divide-gray-200 text-sm">
-        <thead className="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-600">
+    <div className="overflow-hidden rounded-lg border border-[#d8d4c5]">
+      <table className="min-w-full divide-y divide-[#e2dece] text-sm">
+        <thead className="bg-[#f4f1e6] text-left text-xs uppercase tracking-wide text-[#717865]">
           <tr>
             {columns.map((column) => (
               <th
@@ -32,9 +32,9 @@ export function DataTable<T extends Record<string, ReactNode>>({
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-100 bg-white text-gray-700">
+        <tbody className="divide-y divide-[#ebe7d8] bg-[#fffef9] text-[#596151]">
           {rows.map((row, rowIndex) => (
-            <tr key={rowIndex} className="hover:bg-gray-50">
+            <tr key={rowIndex} className="hover:bg-[#f5f2e8]">
               {columns.map((column) => (
                 <td
                   key={`${String(column.key)}-${rowIndex}`}

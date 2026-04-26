@@ -22,13 +22,13 @@ export function InputSection({
 
   return (
     <section
-      className={`rounded-xl border border-gray-200 bg-white p-6 shadow-sm ${
+      className={`rounded-xl border border-[#d6d2c1] bg-[#fffdf6] p-6 shadow-sm ${
         effectiveDisabled && !busy ? "opacity-60" : ""
       }`}
     >
       <label
         htmlFor="hypothesis"
-        className="mb-2 block text-sm font-semibold text-gray-900"
+        className="mb-2 block text-sm font-semibold text-[#4b5242]"
       >
         Hypothesis Input
       </label>
@@ -37,19 +37,19 @@ export function InputSection({
         value={hypothesis}
         disabled={effectiveDisabled}
         onChange={(event) => onHypothesisChange(event.target.value)}
-        className="min-h-32 w-full resize-none rounded-lg border border-gray-200 px-4 py-3 text-sm text-gray-700 outline-none ring-gray-300 transition placeholder:text-gray-400 focus:ring-2 disabled:cursor-not-allowed"
+        className="min-h-32 w-full resize-none rounded-lg border border-[#d8d4c5] bg-[#fffef9] px-4 py-3 text-sm text-[#4f5648] outline-none ring-[#b8b39f] transition placeholder:text-[#9b9786] focus:ring-2 disabled:cursor-not-allowed"
         placeholder="Enter your scientific hypothesis..."
       />
 
       {busy && loadingMessage ? (
-        <p className="mt-3 text-sm text-gray-600" aria-live="polite">
+        <p className="mt-3 text-sm text-[#6a715f]" aria-live="polite">
           {loadingMessage}
         </p>
       ) : null}
 
       {errorMessage ? (
         <p
-          className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
+          className="mt-3 rounded-lg border border-[#e6c8bf] bg-[#fff1ee] px-3 py-2 text-sm text-[#9c4736]"
           role="alert"
         >
           {errorMessage}
@@ -63,7 +63,7 @@ export function InputSection({
             void onGenerate();
           }}
           disabled={effectiveDisabled}
-          className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white transition enabled:hover:bg-gray-700 disabled:cursor-not-allowed disabled:bg-gray-300"
+          className="rounded-lg bg-[#7f8572] px-4 py-2 text-sm font-medium text-[#f8f7f1] transition enabled:hover:bg-[#707761] disabled:cursor-not-allowed disabled:bg-[#bdb9a8]"
         >
           {busy ? "Working…" : "Generate Experiment Plan"}
         </button>

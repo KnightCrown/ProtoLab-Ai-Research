@@ -161,7 +161,7 @@ export default function Home() {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50 text-gray-900">
+    <div className="flex h-screen bg-[#f6f2e6] text-[#3f4539]">
       <Sidebar
         experiments={experiments}
         selectedExperimentId={selectedIdResolved}
@@ -173,8 +173,8 @@ export default function Home() {
         {!hasExperiments ? (
           <div className="flex flex-1 items-center justify-center">
             <div className="max-w-md text-center">
-              <p className="text-lg font-medium text-gray-900">Create a new experiment to begin</p>
-              <p className="mt-2 text-sm text-gray-500">Use the sidebar to add your first experiment.</p>
+              <p className="text-lg font-medium text-[#485041]">Create a new experiment to begin</p>
+              <p className="mt-2 text-sm text-[#7e846f]">Use the sidebar to add your first experiment.</p>
             </div>
           </div>
         ) : (
@@ -189,22 +189,22 @@ export default function Home() {
               errorMessage={analysisError}
             />
 
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch sm:justify-between sm:gap-4">
-              <div className="min-w-0 flex-1">
-                <ResearchTabs tabs={navItems} activeTab={activeTab} onChange={setActiveTab} />
-              </div>
-              {selected?.results ? (
-                <div className="flex shrink-0 sm:items-start">
+            <ResearchTabs
+              tabs={navItems}
+              activeTab={activeTab}
+              onChange={setActiveTab}
+              rightAction={
+                selected?.results ? (
                   <button
                     type="button"
                     onClick={handleExportPdf}
-                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-800 shadow-sm transition hover:border-gray-400 hover:bg-gray-50 sm:w-auto"
+                    className="inline-flex w-full items-center justify-center rounded-md border border-[#c9c5b4] bg-[#7f8572] px-3 py-2 text-sm font-medium text-[#f7f6ef] shadow-sm transition hover:bg-[#6f7663] sm:w-auto"
                   >
-                    Export report as PDF
+                    Export as PDF
                   </button>
-                </div>
-              ) : null}
-            </div>
+                ) : undefined
+              }
+            />
 
             <ExperimentTabContent activeTab={activeTab} results={selected?.results ?? null} />
           </div>
