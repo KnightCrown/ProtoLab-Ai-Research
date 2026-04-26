@@ -7,6 +7,7 @@ import type { ProtocolExamplePayload } from "@/lib/pipeline/loadProtocolExample"
 import type { ProtocolRulesPayload } from "@/lib/pipeline/loadProtocolRules";
 import { completeJson } from "@/lib/pipeline/openaiJson";
 import { countLeafSteps } from "@/lib/pipeline/protocolFlatten";
+import { refineProtocolSteps } from "@/lib/pipeline/refineProtocolSteps";
 import type {
   HypothesisAnalysis,
   LaboratoryProtocol,
@@ -169,12 +170,14 @@ export async function generateSingleProtocol(
 ): Promise<LaboratoryProtocol> {
   const label = planItem.id;
   log("protocol_generation", "start", { plan_id: label, name: planItem.name });
+
   const raw = await completeJson(openai, {
     system: buildSingleProtocolSystemMessage(rules, example),
     user: buildSingleProtocolUserMessage(hypothesis, analysis, planItem),
     max_tokens: 6000,
     model: "gpt-4o-mini",
   });
+
   const proto = parseSingleProtocol(raw as Record<string, unknown>, planItem);
   if (countLeafSteps([proto]) < 3) {
     throw new Error(
@@ -182,5 +185,8 @@ export async function generateSingleProtocol(
     );
   }
   log("protocol_generation", "complete", { plan_id: label, leaves: countLeafSteps([proto]) });
-  return { ...proto, id: planItem.id };
+
+  // Refine raw steps into precise, executable Methods-section sentences.
+  const refined = await refineProtocolSteps(openai, { ...proto, id: planItem.id }, hypothesis, analysis, planItem, log);
+  return refined;
 }
