@@ -60,23 +60,17 @@ export async function researchMaterials(
   log("research_materials", "start", { extracted: extracted.length });
   const capped = extracted.slice(0, MAX_MATERIALS);
 
-  const pairs: { material: ExtractedMaterial; hits: { title: string; url: string; content: string }[] }[] =
-    [];
-
-  for (let i = 0; i < capped.length; i += 3) {
-    const chunk = capped.slice(i, i + 3);
-    const chunkResults = await Promise.all(
-      chunk.map(async (material) => {
-        const hits = await runTavilySearch({
-          tavilyKey,
-          query: buildQuery(material),
-          maxResults: 2,
-        });
-        return { material, hits };
-      })
-    );
-    pairs.push(...chunkResults);
-  }
+  // All Tavily calls are independent — fire them all at once.
+  const pairs = await Promise.all(
+    capped.map(async (material) => {
+      const hits = await runTavilySearch({
+        tavilyKey,
+        query: buildQuery(material),
+        maxResults: 2,
+      });
+      return { material, hits };
+    })
+  );
 
   const block = buildSnippetsBlock(pairs);
   const raw = await completeJson(openai, {

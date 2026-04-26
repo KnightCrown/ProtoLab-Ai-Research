@@ -42,8 +42,8 @@ const defaultLog: PipelineLogFn = (stage, message, detail) => {
 
 /** Cap planned procedures to keep latency predictable (planner can over-split). */
 const MAX_PROTOCOLS_IN_PLAN = 6;
-/** OpenAI calls run in parallel; limit avoids rate limits while beating sequential wall time. */
-const PROTOCOL_GENERATION_CONCURRENCY = 4;
+/** Match concurrency to the cap so all SOPs fire at once. */
+const PROTOCOL_GENERATION_CONCURRENCY = 6;
 
 export async function runPipeline(opts: RunPipelineOptions): Promise<PipelineResult> {
   const log = opts.log ?? defaultLog;
@@ -55,15 +55,21 @@ export async function runPipeline(opts: RunPipelineOptions): Promise<PipelineRes
   const openai = new OpenAI({ apiKey: opts.openaiApiKey });
 
   try {
+    // Fire file reads immediately — they'll almost certainly finish before
+    // protocol generation begins regardless of when they're awaited.
+    const rulesExamplePromise = Promise.all([loadProtocolRules(), loadProtocolExample()]);
+
+    // Stage 1: analyse hypothesis.
     const hypothesis_analysis = await analyzeHypothesis(openai, hypothesis, log);
-    const literature_qc = await literatureQC(
-      openai,
-      opts.tavilyApiKey,
-      hypothesis,
-      hypothesis_analysis,
-      log
-    );
-    let protocol_plan = await planProtocols(openai, hypothesis, hypothesis_analysis, log);
+
+    // Stage 2: literature QC and protocol planning share only `hypothesis_analysis` —
+    // run them in parallel to save the full wall time of whichever finishes first.
+    const [literature_qc, rawPlan] = await Promise.all([
+      literatureQC(openai, opts.tavilyApiKey, hypothesis, hypothesis_analysis, log),
+      planProtocols(openai, hypothesis, hypothesis_analysis, log),
+    ]);
+
+    let protocol_plan = rawPlan;
     if (protocol_plan.length > MAX_PROTOCOLS_IN_PLAN) {
       log("orchestrator", "protocol_plan_capped", {
         before: protocol_plan.length,
@@ -71,7 +77,9 @@ export async function runPipeline(opts: RunPipelineOptions): Promise<PipelineRes
       });
       protocol_plan = protocol_plan.slice(0, MAX_PROTOCOLS_IN_PLAN);
     }
-    const [rules, example] = await Promise.all([loadProtocolRules(), loadProtocolExample()]);
+
+    // Stage 3: generate SOPs. File reads are almost certainly done by now.
+    const [rules, example] = await rulesExamplePromise;
     const protocols: LaboratoryProtocol[] = await mapConcurrent(
       protocol_plan,
       PROTOCOL_GENERATION_CONCURRENCY,
@@ -89,7 +97,18 @@ export async function runPipeline(opts: RunPipelineOptions): Promise<PipelineRes
     if (protocols.length !== protocol_plan.length) {
       throw new PipelineStageError("orchestrator", "Protocol list length mismatch after generation");
     }
-    const materials_extracted = await extractMaterialsFromProtocol(openai, protocols, log);
+
+    // Stage 4: independent post-protocol tasks run in parallel:
+    //   • extractMaterials  (feeds researchMaterials → cost → staffing)
+    //   • generateTimeline  (only needs protocols + hypothesis + web search)
+    //   • generateValidation (only needs hypothesis + analysis + protocols)
+    const [materials_extracted, timeline, validation] = await Promise.all([
+      extractMaterialsFromProtocol(openai, protocols, log),
+      generateTimeline(openai, opts.tavilyApiKey, hypothesis, protocols, log),
+      generateValidation(openai, hypothesis, hypothesis_analysis, protocols, log),
+    ]);
+
+    // Stage 5: materials research chain (serial dependency on extracted list).
     const materials = await researchMaterials(
       openai,
       opts.tavilyApiKey,
@@ -97,21 +116,9 @@ export async function runPipeline(opts: RunPipelineOptions): Promise<PipelineRes
       log
     );
     const cost_estimate = await generateCost(openai, materials, log);
-    const timeline = await generateTimeline(
-      openai,
-      opts.tavilyApiKey,
-      hypothesis,
-      protocols,
-      log
-    );
+
+    // Stage 6: staffing is synchronous and needs the completed timeline.
     const staffing = estimateStaffing(protocols, timeline, log);
-    const validation = await generateValidation(
-      openai,
-      hypothesis,
-      hypothesis_analysis,
-      protocols,
-      log
-    );
 
     return {
       hypothesis_analysis,

@@ -6,10 +6,14 @@ export type ProtocolExamplePayload = {
   version: string;
 };
 
+let _cachedExample: ProtocolExamplePayload | null = null;
+
 export async function loadProtocolExample(): Promise<ProtocolExamplePayload> {
+  if (_cachedExample) return _cachedExample;
   const filePath = path.join(process.cwd(), "protocol_example.md");
   const full_text = await readFile(filePath, "utf8");
-  return { full_text, version: "0.1.0" };
+  _cachedExample = { full_text, version: "0.1.0" };
+  return _cachedExample;
 }
 
 /** Compact JSON for the model: style + format reference (truncated in prompt builder if huge). */

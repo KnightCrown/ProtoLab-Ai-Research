@@ -21,14 +21,18 @@ function extractBullets(md: string): string[] {
   return bullets.slice(0, 40);
 }
 
+let _cachedRules: ProtocolRulesPayload | null = null;
+
 export async function loadProtocolRules(): Promise<ProtocolRulesPayload> {
+  if (_cachedRules) return _cachedRules;
   const filePath = path.join(process.cwd(), "protocol_rules.md");
   const full_text = await readFile(filePath, "utf8");
-  return {
+  _cachedRules = {
     full_text,
     constraints_bullets: extractBullets(full_text),
     version: "0.6.1",
   };
+  return _cachedRules;
 }
 
 export function rulesAsJsonString(payload: ProtocolRulesPayload): string {
