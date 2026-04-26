@@ -385,79 +385,153 @@ export function ExperimentTabContent({ activeTab, results }: ExperimentTabConten
   }
 
   if (activeTab === "timeline") {
-    const lines = results.timeline ?? [];
-    const st = results.stepTimelines ?? [];
+    const phases = results.timelinePhases ?? [];
     const sp = results.staffingPlan;
+    const deps = results.timelineDependencies ?? [];
+
+    /** Derive a sensible personnel string for a phase based on its name. */
+    function phasePersonnel(phaseName: string): string {
+      if (!sp) return "—";
+      const n = phaseName.toLowerCase();
+      if (/incubat|wait|block|passiv/.test(n)) return "1 researcher";
+      if (/analys|data|statist|process|interpret/.test(n))
+        return `${Math.max(1, Math.ceil(sp.total_people / 2))} researcher${Math.max(1, Math.ceil(sp.total_people / 2)) !== 1 ? "s" : ""}`;
+      return `${sp.total_people} researcher${sp.total_people !== 1 ? "s" : ""}`;
+    }
+
     return (
-      <div className="space-y-4">
-        <section className="grid gap-4 md:grid-cols-2">
-          <Card title="Phased timeline">
-            {lines.length === 0 ? (
-              <p className="text-sm text-gray-600">No timeline data.</p>
-            ) : (
-              <ul className="space-y-2 text-sm text-gray-700">
-                {lines.map((entry) => (
-                  <li key={entry} className="rounded-lg bg-gray-50 px-3 py-2">
-                    {entry}
-                  </li>
-                ))}
-              </ul>
-            )}
+      <div className="space-y-5">
+        {/* ── Project schedule ──────────────────────────────────────────── */}
+        <section className="border border-gray-200 bg-white">
+          <div className="border-b border-gray-200 px-5 py-3 sm:px-8">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+              Project schedule
+            </h2>
             {results.timelineTotalDuration ? (
-              <p className="mt-3 text-sm font-medium text-gray-900">
-                Total: {results.timelineTotalDuration}
+              <p className="mt-0.5 text-sm text-gray-700">
+                Total duration:{" "}
+                <span className="font-semibold text-gray-900">{results.timelineTotalDuration}</span>
               </p>
             ) : null}
-            {results.timelineWebNote ? (
-              <p className="mt-2 text-xs text-gray-500">Web hint: {results.timelineWebNote}</p>
-            ) : null}
-          </Card>
-          <Card title="Dependencies">
-            {results.timelineDependencies && results.timelineDependencies.length > 0 ? (
-              <ul className="list-disc pl-5 text-sm text-gray-700">
-                {results.timelineDependencies.map((d) => (
-                  <li key={d}>{d}</li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-sm text-gray-600">No dependency list.</p>
-            )}
-          </Card>
+          </div>
+
+          {phases.length === 0 ? (
+            <p className="px-5 py-4 text-sm text-gray-500">No phase data available.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-200 bg-slate-50">
+                    <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 sm:px-8">
+                      Phase
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+                      Tasks
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+                      Duration
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 sm:pr-8">
+                      Personnel
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {phases.map((phase, idx) => (
+                    <tr
+                      key={`${phase.name}-${idx}`}
+                      className="align-top transition-colors hover:bg-slate-50/60"
+                    >
+                      <td className="px-5 py-3 font-medium text-gray-900 sm:px-8">
+                        {phase.name}
+                      </td>
+                      <td className="px-4 py-3 text-gray-700">
+                        {phase.deliverables.length > 1 ? (
+                          <ul className="space-y-0.5">
+                            {phase.deliverables.map((d) => (
+                              <li key={d} className="flex items-start gap-1.5">
+                                <span className="mt-1.5 block h-1 w-1 shrink-0 rounded-full bg-slate-400" />
+                                {d}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <span>{phase.deliverables[0] ?? "—"}</span>
+                        )}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-gray-700">
+                        {phase.duration}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-gray-700 sm:pr-8">
+                        {phasePersonnel(phase.name)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {results.timelineWebNote ? (
+            <p className="border-t border-gray-100 px-5 py-2 text-xs text-gray-400 sm:px-8">
+              Source note: {results.timelineWebNote.slice(0, 300)}
+            </p>
+          ) : null}
         </section>
-        {st.length > 0 ? (
-          <Card title="Per-step schedule">
-            <ul className="space-y-2 text-sm text-gray-700">
-              {st.map((s) => (
-                <li
-                  key={s.step_number}
-                  className="flex flex-wrap items-baseline justify-between gap-2 rounded-lg border border-gray-100 px-3 py-2"
-                >
-                  <span className="font-medium text-gray-900">
-                    {s.step_number}. {s.type}
-                  </span>
-                  <span className="text-gray-500">{s.estimated_duration}</span>
-                  <p className="w-full text-xs text-gray-600">{s.step}</p>
-                </li>
-              ))}
-            </ul>
-          </Card>
-        ) : null}
+
+        {/* ── Staffing ──────────────────────────────────────────────────── */}
         {sp ? (
-          <Card title="Staffing (heuristic)">
-            <p className="text-sm text-gray-700">
-              <span className="font-medium">Headcount (planning):</span> {sp.total_people} people
-            </p>
-            <p className="mt-2 text-sm text-gray-700">
-              <span className="font-medium">Roles:</span> {sp.roles.join(", ")}
-            </p>
-            <ul className="mt-2 list-disc pl-5 text-sm text-gray-700">
-              {Object.entries(sp.hours_per_role).map(([role, h]) => (
-                <li key={role}>
-                  {role}: {h}h
-                </li>
+          <section className="border border-gray-200 bg-white">
+            <div className="border-b border-gray-200 px-5 py-3 sm:px-8">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                Staffing
+              </h2>
+              <p className="mt-0.5 text-sm text-gray-700">
+                Total headcount:{" "}
+                <span className="font-semibold text-gray-900">
+                  {sp.total_people} {sp.total_people === 1 ? "person" : "people"}
+                </span>
+              </p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-200 bg-slate-50">
+                    <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 sm:px-8">
+                      Role
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500 sm:pr-8">
+                      Est. hours
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {Object.entries(sp.hours_per_role).map(([role, hours]) => (
+                    <tr key={role} className="hover:bg-slate-50/60">
+                      <td className="px-5 py-3 text-gray-900 sm:px-8">{role}</td>
+                      <td className="px-4 py-3 text-right tabular-nums text-gray-700 sm:pr-8">
+                        {hours}h
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        ) : null}
+
+        {/* ── Dependencies ──────────────────────────────────────────────── */}
+        {deps.length > 0 ? (
+          <section className="border border-gray-200 bg-white px-5 py-4 sm:px-8">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+              Dependencies
+            </h2>
+            <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-gray-700">
+              {deps.map((d) => (
+                <li key={d}>{d}</li>
               ))}
             </ul>
-          </Card>
+          </section>
         ) : null}
       </div>
     );

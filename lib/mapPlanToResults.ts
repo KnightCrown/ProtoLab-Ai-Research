@@ -96,6 +96,11 @@ export function mapPlanToResults(plan: PipelineResult): ExperimentResults {
     timeline: t.phases.map(
       (p) => `${p.name} (${p.duration}) — ${p.deliverables.join("; ")}`
     ),
+    timelinePhases: t.phases.map((p) => ({
+      name: p.name,
+      duration: p.duration,
+      deliverables: p.deliverables,
+    })),
     stepTimelines: t.steps_timeline,
     timelineTotalDuration: t.total_duration,
     timelineDependencies: t.dependencies,

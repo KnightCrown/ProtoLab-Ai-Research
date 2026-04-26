@@ -55,6 +55,7 @@ export type ExperimentResults = {
   costLineItems?: { label: string; amount: string }[];
   costDrivers?: string[];
   timeline?: string[];
+  timelinePhases?: { name: string; duration: string; deliverables: string[] }[];
   stepTimelines?: StepTimeline[];
   timelineTotalDuration?: string;
   timelineDependencies?: string[];
