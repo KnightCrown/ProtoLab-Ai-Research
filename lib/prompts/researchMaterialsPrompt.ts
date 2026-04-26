@@ -18,8 +18,7 @@ const SCHEMA = `{
       "supplier": string,
       "price_estimate": string,
       "source_url": string,
-      "specification": string,
-      "price_grounded": boolean
+      "specification": string
     }
   ]
 }`;
@@ -30,8 +29,7 @@ export const RESEARCH_MATERIALS_SYSTEM = `You extract laboratory material pricin
 
 ### price_estimate
 - Extract the price ONLY if it appears verbatim (as a number or range with a currency symbol: $, £, €) in one of the provided search snippets.
-- Set "price_grounded": true when you extract a real price from a snippet.
-- If NO price appears in any snippet for a material, write "Not found in search results" as the price_estimate, set "price_grounded": false, and do NOT invent or infer any number.
+- If NO price appears in any snippet for a material, write "Not found in search results" as the price_estimate and do NOT invent or infer any number.
 - You may write a range ("$45–$80") if two prices appear in the same snippet. Do not combine prices across different snippets.
 - Never output a USD amount that does not appear in the supplied text.
 

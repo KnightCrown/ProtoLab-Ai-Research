@@ -12,6 +12,14 @@ const MAX_MATERIALS = 8;
 /** 3 results per material gives the model more price/supplier data to work with. */
 const TAVILY_MAX_RESULTS = 3;
 
+/**
+ * Matches currency amounts that look like real prices in snippet text.
+ * Covers $, €, £, ¥, and ISO codes (USD, EUR, GBP, CAD, AUD).
+ * Examples matched: $45.99  $1,299  USD 120  €35  £180–£250  45 CAD
+ */
+const PRICE_PATTERN =
+  /[\$€£¥]\s*\d[\d,.]*([\s\-–]+[\$€£¥]?\s*\d[\d,.]*)?|\d[\d,.]*\s*(USD|EUR|GBP|CAD|AUD)\b/i;
+
 function buildQuery(m: ExtractedMaterial): string {
   return `buy ${m.name} ${m.specification} lab price USD supplier`.replace(/\s+/g, " ").trim();
 }
@@ -23,7 +31,20 @@ type MaterialPair = {
   hits: TavilyHit[];
   /** All URLs returned by Tavily for this material — used to enforce URL grounding. */
   validUrls: Set<string>;
+  /**
+   * True when at least one Tavily snippet or title for this material contains
+   * a recognisable currency amount.  Set in code before the LLM call so
+   * grounding is never determined by the model's self-report.
+   */
+  snippetHasPrice: boolean;
 };
+
+/** Returns true if any snippet or title text contains a currency amount. */
+function detectPriceInSnippets(hits: TavilyHit[]): boolean {
+  return hits.some(
+    (h) => PRICE_PATTERN.test(h.content || "") || PRICE_PATTERN.test(h.title || "")
+  );
+}
 
 function buildSnippetsBlock(pairs: MaterialPair[]): string {
   return pairs
@@ -79,13 +100,18 @@ function parseResearched(
     // Hard-enforce: replace any URL not in the Tavily result set for this material.
     const source_url = enforceUrl(rawUrl, pair?.validUrls ?? new Set(), firstHitUrl);
 
-    // price_grounded: respect what the model said, but clamp to false if the
-    // price string looks like "Not found" or is empty.
     const rawPrice = String(o.price_estimate || "").trim();
-    const modelGrounded = Boolean(o.price_grounded);
+
+    // Grounding is determined entirely in code — never by the model's claim.
+    // A price is grounded when:
+    //   1. At least one Tavily snippet for this material contained a currency
+    //      amount (detected by regex before the LLM call), AND
+    //   2. The model returned a string that itself looks like a price (not a
+    //      fallback phrase like "Not found in search results").
     const price_grounded =
-      modelGrounded &&
+      (pair?.snippetHasPrice ?? false) &&
       rawPrice.length > 0 &&
+      PRICE_PATTERN.test(rawPrice) &&
       !rawPrice.toLowerCase().includes("not found") &&
       !rawPrice.toLowerCase().includes("tbd");
 
@@ -123,6 +149,9 @@ export async function researchMaterials(
         hits,
         // Pre-build the valid-URL set so URL enforcement is O(1) per item.
         validUrls: new Set(hits.map((h) => h.url).filter(Boolean)),
+        // Detect price patterns in snippet text before the LLM sees them.
+        // This is used as the authoritative grounding signal in parseResearched.
+        snippetHasPrice: detectPriceInSnippets(hits),
       };
     })
   );
