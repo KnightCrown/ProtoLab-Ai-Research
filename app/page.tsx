@@ -25,6 +25,9 @@ const LOADING_PHASES = [
   "11/11 Computing trust score…",
 ] as const;
 
+const DEFAULT_HYPOTHESIS =
+  "Supplementing C57BL/6 mice with Lactobacillus rhamnosus GG for 4 weeks will reduce intestinal permeability by at least 30% compared to controls, measured by FITC-dextran assay, due to upregulation of tight junction proteins claudin-1 and occludin.";
+
 function newId(): string {
   if (typeof globalThis !== "undefined" && globalThis.crypto && "randomUUID" in globalThis.crypto) {
     return globalThis.crypto.randomUUID();
@@ -75,7 +78,7 @@ export default function Home() {
     const newExperiment: Experiment = {
       id,
       name: `Experiment ${n}`,
-      hypothesis: "",
+      hypothesis: DEFAULT_HYPOTHESIS,
       results: null,
       fullPlan: undefined,
     };
@@ -189,24 +192,25 @@ export default function Home() {
               errorMessage={analysisError}
             />
 
-            <ResearchTabs
-              tabs={navItems}
-              activeTab={activeTab}
-              onChange={setActiveTab}
-              rightAction={
-                selected?.results ? (
-                  <button
-                    type="button"
-                    onClick={handleExportPdf}
-                    className="inline-flex w-full items-center justify-center rounded-md border border-[#c9c5b4] bg-[#7f8572] px-3 py-2 text-sm font-medium text-[#f7f6ef] shadow-sm transition hover:bg-[#6f7663] sm:w-auto"
-                  >
-                    Export as PDF
-                  </button>
-                ) : undefined
-              }
-            />
-
-            <ExperimentTabContent activeTab={activeTab} results={selected?.results ?? null} />
+            {selected?.results ? (
+              <>
+                <ResearchTabs
+                  tabs={navItems}
+                  activeTab={activeTab}
+                  onChange={setActiveTab}
+                  rightAction={
+                    <button
+                      type="button"
+                      onClick={handleExportPdf}
+                      className="inline-flex w-full items-center justify-center rounded-md border border-[#c9c5b4] bg-[#7f8572] px-3 py-2 text-sm font-medium text-[#f7f6ef] shadow-sm transition hover:bg-[#6f7663] sm:w-auto"
+                    >
+                      Export as PDF
+                    </button>
+                  }
+                />
+                <ExperimentTabContent activeTab={activeTab} results={selected.results} />
+              </>
+            ) : null}
           </div>
         )}
       </main>
