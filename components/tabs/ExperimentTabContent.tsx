@@ -31,6 +31,36 @@ type ExperimentTabContentProps = {
   results: ExperimentResults | null;
 };
 
+function trustTone(score: number): {
+  text: string;
+  bg: string;
+  ring: string;
+  confidenceBadge: string;
+} {
+  if (score >= 75) {
+    return {
+      text: "text-emerald-700",
+      bg: "bg-emerald-50",
+      ring: "ring-emerald-200",
+      confidenceBadge: "bg-emerald-100 text-emerald-800",
+    };
+  }
+  if (score >= 45) {
+    return {
+      text: "text-amber-700",
+      bg: "bg-amber-50",
+      ring: "ring-amber-200",
+      confidenceBadge: "bg-amber-100 text-amber-800",
+    };
+  }
+  return {
+    text: "text-rose-700",
+    bg: "bg-rose-50",
+    ring: "ring-rose-200",
+    confidenceBadge: "bg-rose-100 text-rose-800",
+  };
+}
+
 function ProcedureStepBlock({ step, depth = 0 }: { step: ProcedureStep; depth?: number }) {
   const narrative = procedureStepToNarrative(step);
   const hasSubs = step.sub_steps && step.sub_steps.length > 0;
@@ -129,6 +159,17 @@ function CollapsibleProtocol({ p, headerName }: { p: LaboratoryProtocol; headerN
 }
 
 export function ExperimentTabContent({ activeTab, results }: ExperimentTabContentProps) {
+  if (activeTab === "trust" && !results) {
+    return (
+      <div className="rounded-xl border border-dashed border-gray-300 bg-white p-10 text-center shadow-sm">
+        <p className="text-sm font-medium text-gray-900">Run an experiment to see trust score</p>
+        <p className="mt-1 text-sm text-gray-500">
+          The trust score appears after the full plan is generated and evaluated.
+        </p>
+      </div>
+    );
+  }
+
   if (!results) {
     return <NoResultsPanel />;
   }
@@ -538,32 +579,48 @@ export function ExperimentTabContent({ activeTab, results }: ExperimentTabConten
   }
 
   if (activeTab === "trust") {
-    const v = results.validation;
-    if (!v) {
+    const trust = results.trustScore;
+    if (!trust) {
       return (
-        <Card title="Validation & statistics">
-          <p className="text-sm text-gray-600">No validation block for this plan (legacy data).</p>
+        <Card title="Trust score">
+          <p className="text-sm text-gray-600">
+            Trust scoring is unavailable for this plan (legacy or incomplete data).
+          </p>
         </Card>
       );
     }
+    const tone = trustTone(trust.score);
     return (
       <div className="space-y-4">
-        <Card title="Measurement">
-          <p className="text-sm leading-6 text-gray-800">{v.measurement_method}</p>
+        <section className={`rounded-xl border bg-white p-6 shadow-sm ring-1 ${tone.ring}`}>
+          <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">Trust score</p>
+          <p className={`mt-2 text-4xl font-extrabold tracking-tight sm:text-5xl ${tone.text}`}>
+            {trust.score} / 100
+          </p>
+          <div className="mt-4">
+            <span
+              className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide ${tone.confidenceBadge}`}
+            >
+              Confidence: {trust.confidence}
+            </span>
+          </div>
+        </section>
+
+        <Card title="Issues to address">
+          {trust.issues.length === 0 ? (
+            <p className="text-sm text-emerald-700">No major issues were flagged.</p>
+          ) : (
+            <ul className="list-disc space-y-2 pl-5 text-sm text-gray-800">
+              {trust.issues.map((issue) => (
+                <li key={issue}>{issue}</li>
+              ))}
+            </ul>
+          )}
         </Card>
-        <Card title="Statistical analysis">
-          <p className="text-sm leading-6 text-gray-800">{v.statistical_test}</p>
-        </Card>
-        <Card title="Success criteria">
-          <p className="text-sm leading-6 text-gray-800">{v.success_criteria}</p>
-        </Card>
-        <Card title="Sources of error / confounders">
-          <ul className="list-disc pl-5 text-sm text-gray-700">
-            {v.sources_of_error.map((s) => (
-              <li key={s}>{s}</li>
-            ))}
-          </ul>
-        </Card>
+
+        <div className={`rounded-xl border p-3 text-xs ${tone.bg} ${tone.text}`}>
+          Score bands: 75-100 high trust, 45-74 medium trust, 0-44 low trust.
+        </div>
       </div>
     );
   }

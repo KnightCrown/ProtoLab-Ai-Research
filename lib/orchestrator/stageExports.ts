@@ -9,3 +9,4 @@ export { generateCost } from "@/lib/pipeline/generateCost";
 export { generateTimeline } from "@/lib/pipeline/generateTimeline";
 export { estimateStaffing } from "@/lib/pipeline/estimateStaffing";
 export { generateValidation } from "@/lib/pipeline/generateValidation";
+export { generateTrustScore } from "@/lib/pipeline/generateTrustScore";

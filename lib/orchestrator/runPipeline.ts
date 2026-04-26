@@ -4,6 +4,7 @@ import { extractMaterialsFromProtocol } from "@/lib/pipeline/extractMaterialsFro
 import { generateCost } from "@/lib/pipeline/generateCost";
 import { generateSingleProtocol } from "@/lib/pipeline/generateProtocol";
 import { generateTimeline } from "@/lib/pipeline/generateTimeline";
+import { generateTrustScore } from "@/lib/pipeline/generateTrustScore";
 import { generateValidation } from "@/lib/pipeline/generateValidation";
 import { estimateStaffing } from "@/lib/pipeline/estimateStaffing";
 import { literatureQC } from "@/lib/pipeline/literatureQC";
@@ -126,6 +127,13 @@ export async function runPipeline(opts: RunPipelineOptions): Promise<PipelineRes
     // Stage 6: staffing is synchronous and needs the completed timeline.
     const staffing = estimateStaffing(protocols, timeline, log);
 
+    // Stage 7: trust scoring (single LLM call + rule checks).
+    const trust_score = await generateTrustScore(
+      openai,
+      { protocols, materials, cost_estimate, timeline, staffing, validation },
+      log
+    );
+
     const summary = pipelineTimer.summary();
     log("summary", "pipeline_complete", summary);
 
@@ -140,6 +148,7 @@ export async function runPipeline(opts: RunPipelineOptions): Promise<PipelineRes
       timeline,
       staffing,
       validation,
+      trust_score,
     };
   } catch (e) {
     if (e instanceof PipelineStageError) throw e;

@@ -106,6 +106,7 @@ export function mapPlanToResults(plan: PipelineResult): ExperimentResults {
     timelineDependencies: t.dependencies,
     timelineWebNote: t.web_duration_note,
     validation: plan.validation,
+    trustScore: plan.trust_score,
     staffingPlan: staff,
     staffing: Object.entries(staff.hours_per_role).map(([role, hours]) => ({ role, hours })),
   };

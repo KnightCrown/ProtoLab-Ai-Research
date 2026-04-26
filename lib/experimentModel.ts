@@ -1,10 +1,11 @@
 import type { LiteratureReference } from "./analyzeTypes";
-import type { MaterialRow, TrustIssue } from "./mockData";
+import type { MaterialRow } from "./mockData";
 import type {
   LaboratoryProtocol,
   ProtocolPlanItem,
   StaffingPlan,
   StepTimeline,
+  TrustConfidence,
   ValidationPlan,
 } from "./pipeline/types";
 
@@ -63,7 +64,7 @@ export type ExperimentResults = {
   validation?: ValidationPlan;
   staffing?: { role: string; hours: number }[];
   staffingPlan?: StaffingPlan;
-  trustScore?: { score: number; issues: TrustIssue[] };
+  trustScore?: { score: number; issues: string[]; confidence: TrustConfidence };
 };
 
 export type Experiment = {

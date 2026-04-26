@@ -156,6 +156,14 @@ export type ValidationPlan = {
   sources_of_error: string[];
 };
 
+export type TrustConfidence = "low" | "medium" | "high";
+
+export type TrustScore = {
+  score: number;
+  issues: string[];
+  confidence: TrustConfidence;
+};
+
 export type PipelineResult = {
   hypothesis_analysis: HypothesisAnalysis;
   literature_qc: LiteratureQC;
@@ -170,6 +178,7 @@ export type PipelineResult = {
   timeline: TimelinePlan;
   staffing: StaffingPlan;
   validation: ValidationPlan;
+  trust_score: TrustScore;
 };
 
 export type PipelineLogFn = (stage: string, message: string, detail?: unknown) => void;

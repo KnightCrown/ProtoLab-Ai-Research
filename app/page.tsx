@@ -11,16 +11,17 @@ import type { PipelineResult } from "@/lib/pipeline/types";
 import { navItems, TabId } from "@/lib/mockData";
 
 const LOADING_PHASES = [
-  "1/10 Analyzing hypothesis…",
-  "2/10 Literature & novelty…",
-  "3/10 Planning required protocols…",
-  "4/10 Generating each protocol (SOP)…",
-  "5/10 Extracting materials from protocols…",
-  "6/10 Researching suppliers & prices (Tavily)…",
-  "7/10 Building cost model…",
-  "8/10 Timeline & step durations (Tavily assist)…",
-  "9/10 Estimating staffing…",
-  "10/10 Defining validation…",
+  "1/11 Analyzing hypothesis…",
+  "2/11 Literature & novelty…",
+  "3/11 Planning required protocols…",
+  "4/11 Generating each protocol (SOP)…",
+  "5/11 Extracting materials from protocols…",
+  "6/11 Researching suppliers & prices (Tavily)…",
+  "7/11 Building cost model…",
+  "8/11 Timeline & step durations (Tavily assist)…",
+  "9/11 Estimating staffing…",
+  "10/11 Defining validation…",
+  "11/11 Computing trust score…",
 ] as const;
 
 function newId(): string {
@@ -111,7 +112,7 @@ export default function Home() {
       return;
     }
     try {
-      const res = await fetch("/api/generate-plan", {
+      const res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ hypothesis }),
