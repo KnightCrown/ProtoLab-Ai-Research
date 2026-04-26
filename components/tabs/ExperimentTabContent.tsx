@@ -317,22 +317,43 @@ export function ExperimentTabContent({ activeTab, results }: ExperimentTabConten
           ) : null}
         </Card>
         {results.materialsDetail && results.materialsDetail.length > 0 ? (
-          <Card title="Sourcing (Tavily-backed)">
+          <Card title="Sourcing">
             <ul className="space-y-3 text-sm text-gray-700">
               {results.materialsDetail.map((m) => (
                 <li key={m.name + m.sourceUrl} className="border-b border-gray-100 pb-2 last:border-0">
                   <p className="font-medium text-gray-900">{m.productName || m.name}</p>
                   <p className="text-xs text-gray-500">{m.spec}</p>
                   <p className="text-xs">Supplier: {m.supplier}</p>
-                  <p className="text-xs">Price: {m.price}</p>
-                  <a
-                    href={m.sourceUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-xs text-blue-700 underline"
-                  >
-                    Source
-                  </a>
+                  <div className="mt-0.5 flex items-center gap-1.5">
+                    <span className="text-xs">Price: {m.price}</span>
+                    {m.priceGrounded ? (
+                      <span
+                        title="Price extracted from a live search result"
+                        className="inline-flex items-center rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20"
+                      >
+                        verified
+                      </span>
+                    ) : (
+                      <span
+                        title="No price found in search results — this is a market estimate"
+                        className="inline-flex items-center rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 ring-1 ring-inset ring-amber-600/20"
+                      >
+                        estimated
+                      </span>
+                    )}
+                  </div>
+                  {m.sourceUrl && m.sourceUrl !== "#" ? (
+                    <a
+                      href={m.sourceUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-0.5 block text-xs text-blue-700 underline"
+                    >
+                      Source ↗
+                    </a>
+                  ) : (
+                    <span className="mt-0.5 block text-xs text-gray-400">No source URL</span>
+                  )}
                 </li>
               ))}
             </ul>

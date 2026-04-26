@@ -26,6 +26,7 @@ function mapMaterialsDetail(m: PipelineResult["materials"]): ExperimentResults["
     price: x.price_estimate,
     sourceUrl: x.source_url,
     spec: x.specification,
+    priceGrounded: x.price_grounded,
   }));
 }
 

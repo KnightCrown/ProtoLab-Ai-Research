@@ -90,8 +90,17 @@ export type ResearchedMaterial = {
   product_name: string;
   supplier: string;
   price_estimate: string;
+  /**
+   * URL from one of the Tavily search hits for this material.
+   * Always a real URL returned by Tavily — never model-generated.
+   */
   source_url: string;
   specification: string;
+  /**
+   * True  → price was extracted from a Tavily search snippet (real web data).
+   * False → no price was found in the snippets; value is a market estimate.
+   */
+  price_grounded: boolean;
 };
 
 export type CostLineItem = {

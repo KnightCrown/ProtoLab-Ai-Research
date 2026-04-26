@@ -27,6 +27,8 @@ export type MaterialDetailRow = {
   price: string;
   sourceUrl: string;
   spec: string;
+  /** False when the price is a market estimate — no real price was found in search results. */
+  priceGrounded: boolean;
 };
 
 /**
