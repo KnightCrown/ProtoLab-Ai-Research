@@ -12,6 +12,7 @@ import { loadProtocolRules } from "@/lib/pipeline/loadProtocolRules";
 import { mapConcurrent } from "@/lib/pipeline/mapConcurrent";
 import { planProtocols } from "@/lib/pipeline/planProtocols";
 import { researchMaterials } from "@/lib/pipeline/researchMaterials";
+import { makeTimedLog, PipelineTimer } from "@/lib/pipeline/stageTimer";
 import type { LaboratoryProtocol, PipelineLogFn, PipelineResult } from "@/lib/pipeline/types";
 
 export class PipelineStageError extends Error {
@@ -46,11 +47,16 @@ const MAX_PROTOCOLS_IN_PLAN = 6;
 const PROTOCOL_GENERATION_CONCURRENCY = 6;
 
 export async function runPipeline(opts: RunPipelineOptions): Promise<PipelineResult> {
-  const log = opts.log ?? defaultLog;
+  const rawLog = opts.log ?? defaultLog;
   const hypothesis = opts.hypothesis.trim();
   if (!hypothesis) {
     throw new PipelineStageError("input", "Hypothesis is empty");
   }
+
+  // Per-request timer — never a module-level singleton, so parallel HTTP
+  // requests each get their own independent accumulator.
+  const pipelineTimer = new PipelineTimer();
+  const log = makeTimedLog(rawLog, pipelineTimer);
 
   const openai = new OpenAI({ apiKey: opts.openaiApiKey });
 
@@ -119,6 +125,9 @@ export async function runPipeline(opts: RunPipelineOptions): Promise<PipelineRes
 
     // Stage 6: staffing is synchronous and needs the completed timeline.
     const staffing = estimateStaffing(protocols, timeline, log);
+
+    const summary = pipelineTimer.summary();
+    log("summary", "pipeline_complete", summary);
 
     return {
       hypothesis_analysis,
