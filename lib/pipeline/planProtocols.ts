@@ -32,12 +32,13 @@ export async function planProtocols(
   openai: OpenAI,
   hypothesis: string,
   analysis: HypothesisAnalysis,
-  log: PipelineLogFn
+  log: PipelineLogFn,
+  appliedFixes: string[] = []
 ): Promise<ProtocolPlanItem[]> {
-  log("plan_protocols", "start", {});
+  log("plan_protocols", "start", { applied_fixes: appliedFixes.length });
   const raw = await completeJson(openai, {
     system: PLAN_PROTOCOLS_SYSTEM,
-    user: buildPlanProtocolsUserMessage(hypothesis, analysis),
+    user: buildPlanProtocolsUserMessage(hypothesis, analysis, appliedFixes),
     max_tokens: 2000,
     model: "gpt-4o-mini",
   });

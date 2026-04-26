@@ -1,5 +1,6 @@
 import type { LiteratureReference } from "./analyzeTypes";
 import type { ExperimentResults, NoveltyKind } from "./experimentModel";
+import { formatPrice } from "./formatPrice";
 import type { MaterialRow } from "./mockData";
 import { flattenProtocolSteps } from "./pipeline/protocolFlatten";
 import type { LiteratureNovelty, PipelineResult } from "./pipeline/types";
@@ -14,7 +15,7 @@ function mapMaterialsForTable(m: PipelineResult["materials"]): MaterialRow[] {
   return m.map((x) => ({
     item: x.name,
     supplier: x.supplier,
-    cost: x.price_estimate,
+    cost: formatPrice(x.price_estimate),
   }));
 }
 
@@ -23,7 +24,7 @@ function mapMaterialsDetail(m: PipelineResult["materials"]): ExperimentResults["
     name: x.name,
     productName: x.product_name,
     supplier: x.supplier,
-    price: x.price_estimate,
+    price: formatPrice(x.price_estimate),
     sourceUrl: x.source_url,
     spec: x.specification,
     priceGrounded: x.price_grounded,
@@ -89,9 +90,16 @@ export function mapPlanToResults(plan: PipelineResult): ExperimentResults {
     protocolSteps: allProtocolLines(plan.protocols),
     materials: mapMaterialsForTable(plan.materials),
     materialsDetail: mapMaterialsDetail(plan.materials),
-    totalCost: plan.cost_estimate.total_cost,
-    costRange: plan.cost_estimate.cost_range,
-    costLineItems: plan.cost_estimate.line_items,
+    totalCost: formatPrice(plan.cost_estimate.total_cost),
+    costRange: {
+      min: formatPrice(plan.cost_estimate.cost_range.min),
+      max: formatPrice(plan.cost_estimate.cost_range.max),
+      note: plan.cost_estimate.cost_range.note,
+    },
+    costLineItems: plan.cost_estimate.line_items.map((li) => ({
+      label: li.label,
+      amount: formatPrice(li.amount),
+    })),
     costDrivers: plan.cost_estimate.cost_drivers,
     timeline: t.phases.map(
       (p) => `${p.name} (${p.duration}) — ${p.deliverables.join("; ")}`
@@ -109,5 +117,6 @@ export function mapPlanToResults(plan: PipelineResult): ExperimentResults {
     trustScore: plan.trust_score,
     staffingPlan: staff,
     staffing: Object.entries(staff.hours_per_role).map(([role, hours]) => ({ role, hours })),
+    appliedRules: plan.applied_rules,
   };
 }

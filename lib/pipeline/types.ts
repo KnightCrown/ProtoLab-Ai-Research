@@ -164,6 +164,11 @@ export type TrustScore = {
   confidence: TrustConfidence;
 };
 
+export type AppliedFeedbackRule = {
+  type: string;
+  fix: string;
+};
+
 export type PipelineResult = {
   hypothesis_analysis: HypothesisAnalysis;
   literature_qc: LiteratureQC;
@@ -179,6 +184,8 @@ export type PipelineResult = {
   staffing: StaffingPlan;
   validation: ValidationPlan;
   trust_score: TrustScore;
+  /** Feedback rules from prior runs that were injected into this generation. */
+  applied_rules: AppliedFeedbackRule[];
 };
 
 export type PipelineLogFn = (stage: string, message: string, detail?: unknown) => void;

@@ -25,12 +25,19 @@ export const PLAN_PROTOCOLS_SYSTEM = `You are an experimental design lead. Decom
 
 export function buildPlanProtocolsUserMessage(
   hypothesis: string,
-  analysis: HypothesisAnalysis
+  analysis: HypothesisAnalysis,
+  appliedFixes: string[] = []
 ) {
+  const fixesBlock = appliedFixes.length
+    ? `\nAPPLY THESE CORRECTIONS BASED ON PRIOR FEEDBACK (recurring weaknesses in past runs):\n${appliedFixes
+        .map((f) => `- ${f}`)
+        .join("\n")}\n`
+    : "";
+
   return `HYPOTHESIS:\n${hypothesis}
 
 EXPERIMENT DESIGN (from prior analysis, JSON):
 ${JSON.stringify(analysis, null, 2)}
-
+${fixesBlock}
 List every protocol required. The **name** of each must read like a real lab SOP title (not a generic project phase). JSON only.`;
 }

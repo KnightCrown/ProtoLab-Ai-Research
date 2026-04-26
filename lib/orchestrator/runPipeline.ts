@@ -1,4 +1,6 @@
 import OpenAI from "openai";
+import { extractRulesFromIssues } from "@/lib/feedback/extractRules";
+import { getTopRules, upsertRules } from "@/lib/feedback/feedbackStore";
 import { analyzeHypothesis } from "@/lib/pipeline/analyzeHypothesis";
 import { extractMaterialsFromProtocol } from "@/lib/pipeline/extractMaterialsFromProtocol";
 import { generateCost } from "@/lib/pipeline/generateCost";
@@ -14,7 +16,12 @@ import { mapConcurrent } from "@/lib/pipeline/mapConcurrent";
 import { planProtocols } from "@/lib/pipeline/planProtocols";
 import { researchMaterials } from "@/lib/pipeline/researchMaterials";
 import { makeTimedLog, PipelineTimer } from "@/lib/pipeline/stageTimer";
-import type { LaboratoryProtocol, PipelineLogFn, PipelineResult } from "@/lib/pipeline/types";
+import type {
+  AppliedFeedbackRule,
+  LaboratoryProtocol,
+  PipelineLogFn,
+  PipelineResult,
+} from "@/lib/pipeline/types";
 
 export class PipelineStageError extends Error {
   constructor(
@@ -46,6 +53,8 @@ const defaultLog: PipelineLogFn = (stage, message, detail) => {
 const MAX_PROTOCOLS_IN_PLAN = 6;
 /** Match concurrency to the cap so all SOPs fire at once. */
 const PROTOCOL_GENERATION_CONCURRENCY = 6;
+/** How many learned rules to inject into the next generation (avoids prompt bloat). */
+const MAX_APPLIED_FEEDBACK_RULES = 8;
 
 export async function runPipeline(opts: RunPipelineOptions): Promise<PipelineResult> {
   const rawLog = opts.log ?? defaultLog;
@@ -66,6 +75,20 @@ export async function runPipeline(opts: RunPipelineOptions): Promise<PipelineRes
     // protocol generation begins regardless of when they're awaited.
     const rulesExamplePromise = Promise.all([loadProtocolRules(), loadProtocolExample()]);
 
+    // Stage 0: load top feedback rules learned from prior runs and inject
+    //          them into the planning + protocol generation prompts. This
+    //          is the "Learn → Improve Next Generation" half of the loop.
+    const topFeedbackRules = await getTopRules(MAX_APPLIED_FEEDBACK_RULES);
+    const appliedFixes = topFeedbackRules.map((r) => r.fix);
+    const applied_rules: AppliedFeedbackRule[] = topFeedbackRules.map((r) => ({
+      type: r.type,
+      fix: r.fix,
+    }));
+    log("feedback_rules", "applied", {
+      count: appliedFixes.length,
+      types: applied_rules.map((r) => r.type),
+    });
+
     // Stage 1: analyse hypothesis.
     const hypothesis_analysis = await analyzeHypothesis(openai, hypothesis, log);
 
@@ -73,7 +96,7 @@ export async function runPipeline(opts: RunPipelineOptions): Promise<PipelineRes
     // run them in parallel to save the full wall time of whichever finishes first.
     const [literature_qc, rawPlan] = await Promise.all([
       literatureQC(openai, opts.tavilyApiKey, hypothesis, hypothesis_analysis, log),
-      planProtocols(openai, hypothesis, hypothesis_analysis, log),
+      planProtocols(openai, hypothesis, hypothesis_analysis, log, appliedFixes),
     ]);
 
     let protocol_plan = rawPlan;
@@ -98,7 +121,8 @@ export async function runPipeline(opts: RunPipelineOptions): Promise<PipelineRes
           item,
           rules,
           example,
-          log
+          log,
+          appliedFixes
         )
     );
     if (protocols.length !== protocol_plan.length) {
@@ -134,6 +158,22 @@ export async function runPipeline(opts: RunPipelineOptions): Promise<PipelineRes
       log
     );
 
+    // Stage 8: learn — convert this run's trust-score issues into reusable
+    //          feedback rules and persist them. Failures are non-fatal:
+    //          the pipeline result must always be returned even if the
+    //          feedback store is unwritable (e.g. read-only FS).
+    try {
+      const newRules = extractRulesFromIssues(trust_score.issues);
+      if (newRules.length > 0) {
+        await upsertRules(newRules);
+        log("feedback_rules", "stored", { new_rules: newRules.length });
+      }
+    } catch (e) {
+      log("feedback_rules", "store_failed", {
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
+
     const summary = pipelineTimer.summary();
     log("summary", "pipeline_complete", summary);
 
@@ -149,6 +189,7 @@ export async function runPipeline(opts: RunPipelineOptions): Promise<PipelineRes
       staffing,
       validation,
       trust_score,
+      applied_rules,
     };
   } catch (e) {
     if (e instanceof PipelineStageError) throw e;

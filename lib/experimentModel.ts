@@ -1,6 +1,7 @@
 import type { LiteratureReference } from "./analyzeTypes";
 import type { MaterialRow } from "./mockData";
 import type {
+  AppliedFeedbackRule,
   LaboratoryProtocol,
   ProtocolPlanItem,
   StaffingPlan,
@@ -65,6 +66,8 @@ export type ExperimentResults = {
   staffing?: { role: string; hours: number }[];
   staffingPlan?: StaffingPlan;
   trustScore?: { score: number; issues: string[]; confidence: TrustConfidence };
+  /** Feedback rules learned from prior runs that were injected into this generation. */
+  appliedRules?: AppliedFeedbackRule[];
 };
 
 export type Experiment = {

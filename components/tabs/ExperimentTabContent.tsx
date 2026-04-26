@@ -179,82 +179,263 @@ export function ExperimentTabContent({ activeTab, results }: ExperimentTabConten
     const d = o.experimentDesign;
     const tone = noveltyToneClass[o.noveltyKind];
     const refs = o.references ?? [];
+    const plan = results.protocolPlan ?? [];
+    const trust = results.trustScore;
+    const trustToneVal = trust ? trustTone(trust.score) : null;
+    const phases = results.timelinePhases ?? [];
+    const totalDuration = results.timelineTotalDuration;
+    const appliedRules = results.appliedRules ?? [];
+
     return (
-      <article className="w-full max-w-4xl border border-gray-200 bg-white text-gray-900">
-        <div className="border-b border-gray-200 px-5 py-6 sm:px-8">
-          <p className={`text-2xl font-bold tracking-tight sm:text-3xl ${tone}`}>
-            {o.noveltyLabel}
-          </p>
-        </div>
-        <div className="border-b border-gray-200 px-5 py-6 sm:px-8">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-            Literature insight
-          </h2>
-          <p className="mt-3 text-sm leading-7 text-gray-800">
-            {o.literatureInsight === "—" ? (
-              <span className="text-gray-500">No additional reasoning was returned.</span>
-            ) : (
-              o.literatureInsight
-            )}
-          </p>
-        </div>
-        <div className="px-5 py-6 sm:px-8">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-            Experiment design
-          </h2>
-          <div className="mt-6 space-y-6 text-sm">
-            <section>
-              <h3 className="text-sm font-semibold text-gray-900">Independent variables</h3>
-              {d.independentVariables.length ? (
-                <ul className="mt-2 list-disc space-y-1 pl-5 text-gray-800">
-                  {d.independentVariables.map((x) => (
-                    <li key={x}>{x}</li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="mt-2 text-gray-500">—</p>
-              )}
-            </section>
-            <section>
-              <h3 className="text-sm font-semibold text-gray-900">Dependent variables</h3>
-              {d.dependentVariables.length ? (
-                <ul className="mt-2 list-disc space-y-1 pl-5 text-gray-800">
-                  {d.dependentVariables.map((x) => (
-                    <li key={x}>{x}</li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="mt-2 text-gray-500">—</p>
-              )}
-            </section>
-            <section>
-              <h3 className="text-sm font-semibold text-gray-900">Control group</h3>
-              <p className="mt-2 leading-relaxed text-gray-800">{d.controlGroup}</p>
-            </section>
-            <section>
-              <h3 className="text-sm font-semibold text-gray-900">Experimental groups</h3>
-              {d.experimentalGroups.length ? (
-                <ul className="mt-2 list-disc space-y-1 pl-5 text-gray-800">
-                  {d.experimentalGroups.map((x) => (
-                    <li key={x}>{x}</li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="mt-2 text-gray-500">—</p>
-              )}
-            </section>
-            <section>
-              <h3 className="text-sm font-semibold text-gray-900">Measurement method</h3>
-              <p className="mt-2 leading-relaxed text-gray-800">{d.measurementMethod}</p>
-            </section>
-            <section>
-              <h3 className="text-sm font-semibold text-gray-900">Success criteria</h3>
-              <p className="mt-2 leading-relaxed text-gray-800">{d.successCriteria}</p>
-            </section>
+      <div className="w-full space-y-4">
+
+        {/* ── Banner: novelty + trust score ───────────────────────────── */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
+          {/* Novelty / literature */}
+          <div className="flex flex-1 flex-col justify-between rounded-xl border border-gray-200 bg-white px-5 py-5 shadow-sm sm:px-6">
+            <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+              Literature novelty
+            </p>
+            <p className={`mt-2 text-2xl font-bold tracking-tight sm:text-3xl ${tone}`}>
+              {o.noveltyLabel}
+            </p>
+            {o.literatureInsight && o.literatureInsight !== "—" ? (
+              <p className="mt-3 text-sm leading-6 text-gray-600 line-clamp-3">
+                {o.literatureInsight}
+              </p>
+            ) : null}
+            {refs.length > 0 ? (
+              <p className="mt-3 text-xs text-gray-400">{refs.length} reference{refs.length !== 1 ? "s" : ""} found</p>
+            ) : null}
           </div>
+
+          {/* Trust score */}
+          {trust && trustToneVal ? (
+            <div
+              className={`flex flex-col justify-between rounded-xl border px-5 py-5 shadow-sm ring-1 sm:w-52 sm:px-6 ${trustToneVal.bg} ${trustToneVal.ring}`}
+            >
+              <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                Trust score
+              </p>
+              <p className={`mt-2 text-4xl font-extrabold tracking-tight ${trustToneVal.text}`}>
+                {trust.score}<span className="text-xl font-semibold text-gray-400"> / 100</span>
+              </p>
+              <span
+                className={`mt-3 inline-flex w-fit items-center rounded-full px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide ${trustToneVal.confidenceBadge}`}
+              >
+                {trust.confidence} confidence
+              </span>
+              {trust.issues.length > 0 ? (
+                <p className="mt-2 text-xs text-gray-500">
+                  {trust.issues.length} issue{trust.issues.length !== 1 ? "s" : ""} flagged
+                </p>
+              ) : (
+                <p className="mt-2 text-xs text-emerald-600">No issues flagged</p>
+              )}
+            </div>
+          ) : null}
         </div>
+
+        {/* ── System improvements applied (iterative learning) ────────── */}
+        {appliedRules.length > 0 ? (
+          <section className="rounded-xl border border-indigo-200 bg-indigo-50/60 px-5 py-4 shadow-sm sm:px-6">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-indigo-600 text-[10px] font-bold text-white">
+                ✓
+              </span>
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-indigo-900">
+                System improvements applied
+              </h2>
+              <span className="ml-1 rounded-full bg-indigo-200/70 px-2 py-0.5 text-[10px] font-semibold text-indigo-900">
+                {appliedRules.length}
+              </span>
+            </div>
+            <p className="mt-1 text-xs text-indigo-900/70">
+              Corrections learned from prior runs were applied to this generation.
+            </p>
+            <ul className="mt-3 grid gap-1.5 sm:grid-cols-2">
+              {appliedRules.map((r, i) => (
+                <li
+                  key={`${r.type}-${i}`}
+                  className="flex items-start gap-2 rounded-md bg-white/70 px-2.5 py-1.5 text-xs text-indigo-900 ring-1 ring-indigo-100"
+                >
+                  <span className="mt-0.5 inline-flex shrink-0 rounded bg-indigo-600/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-indigo-700">
+                    {r.type}
+                  </span>
+                  <span className="leading-snug">{r.fix}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
+
+        {/* ── Experiment design ────────────────────────────────────────── */}
+        <section className="rounded-xl border border-gray-200 bg-white shadow-sm">
+          <div className="border-b border-gray-200 px-5 py-4 sm:px-6">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+              Experiment design
+            </h2>
+          </div>
+          <div className="grid gap-0 divide-y divide-gray-100 px-5 py-1 text-sm sm:grid-cols-2 sm:divide-x sm:divide-y-0 sm:px-0 sm:py-0">
+            <div className="space-y-4 py-4 sm:px-6 sm:py-5">
+              <div>
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">Independent variables</h3>
+                {d.independentVariables.length ? (
+                  <ul className="mt-1.5 list-disc space-y-0.5 pl-4 text-gray-800">
+                    {d.independentVariables.map((x) => <li key={x}>{x}</li>)}
+                  </ul>
+                ) : <p className="mt-1 text-gray-400">—</p>}
+              </div>
+              <div>
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">Dependent variables</h3>
+                {d.dependentVariables.length ? (
+                  <ul className="mt-1.5 list-disc space-y-0.5 pl-4 text-gray-800">
+                    {d.dependentVariables.map((x) => <li key={x}>{x}</li>)}
+                  </ul>
+                ) : <p className="mt-1 text-gray-400">—</p>}
+              </div>
+              <div>
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">Control group</h3>
+                <p className="mt-1 leading-relaxed text-gray-800">{d.controlGroup}</p>
+              </div>
+            </div>
+            <div className="space-y-4 py-4 sm:px-6 sm:py-5">
+              <div>
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">Experimental groups</h3>
+                {d.experimentalGroups.length ? (
+                  <ul className="mt-1.5 list-disc space-y-0.5 pl-4 text-gray-800">
+                    {d.experimentalGroups.map((x) => <li key={x}>{x}</li>)}
+                  </ul>
+                ) : <p className="mt-1 text-gray-400">—</p>}
+              </div>
+              <div>
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">Measurement method</h3>
+                <p className="mt-1 leading-relaxed text-gray-800">{d.measurementMethod}</p>
+              </div>
+              <div>
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">Success criteria</h3>
+                <p className="mt-1 leading-relaxed text-gray-800">{d.successCriteria}</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── Protocol plan ────────────────────────────────────────────── */}
+        {plan.length > 0 ? (
+          <section className="rounded-xl border border-gray-200 bg-white shadow-sm">
+            <div className="border-b border-gray-200 px-5 py-4 sm:px-6">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                Protocol plan
+              </h2>
+            </div>
+            <ol className="divide-y divide-gray-100">
+              {plan.map((item, idx) => (
+                <li key={item.id} className="flex gap-4 px-5 py-4 sm:px-6">
+                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gray-900 text-xs font-bold text-white">
+                    {idx + 1}
+                  </span>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">{item.name}</p>
+                    {item.description && item.description !== "—" ? (
+                      <p className="mt-0.5 text-sm text-gray-600">{item.description}</p>
+                    ) : null}
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </section>
+        ) : null}
+
+        {/* ── Materials & cost summary ──────────────────────────────────── */}
+        {results.materials && results.materials.length > 0 ? (
+          <section className="rounded-xl border border-gray-200 bg-white shadow-sm">
+            <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4 sm:px-6">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                Materials &amp; cost
+              </h2>
+              {results.totalCost ? (
+                <span className="text-base font-bold text-gray-900">{results.totalCost}</span>
+              ) : null}
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100 bg-gray-50">
+                    <th className="px-5 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 sm:px-6">Item</th>
+                    <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Supplier</th>
+                    <th className="px-4 py-2.5 text-right text-xs font-semibold uppercase tracking-wider text-gray-500 sm:pr-6">Est. cost</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {results.materials.map((m) => (
+                    <tr key={m.item} className="hover:bg-gray-50">
+                      <td className="px-5 py-2.5 font-medium text-gray-900 sm:px-6">{m.item}</td>
+                      <td className="px-4 py-2.5 text-gray-600">{m.supplier}</td>
+                      <td className="px-4 py-2.5 text-right tabular-nums font-medium text-gray-900 sm:pr-6">{m.cost}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {results.costRange ? (
+              <p className="border-t border-gray-100 px-5 py-2.5 text-right text-xs text-gray-500 sm:px-6">
+                Range: {results.costRange.min} — {results.costRange.max}
+                {results.costRange.note ? ` (${results.costRange.note})` : ""}
+              </p>
+            ) : null}
+          </section>
+        ) : null}
+
+        {/* ── Timeline ─────────────────────────────────────────────────── */}
+        {phases.length > 0 ? (
+          <section className="rounded-xl border border-gray-200 bg-white shadow-sm">
+            <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4 sm:px-6">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                Timeline
+              </h2>
+              {totalDuration ? (
+                <span className="text-sm font-bold text-gray-900">{totalDuration}</span>
+              ) : null}
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100 bg-gray-50">
+                    <th className="px-5 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 sm:px-6">Phase</th>
+                    <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Deliverables</th>
+                    <th className="px-4 py-2.5 text-right text-xs font-semibold uppercase tracking-wider text-gray-500 sm:pr-6">Duration</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {phases.map((phase, idx) => (
+                    <tr key={`${phase.name}-${idx}`} className="align-top hover:bg-gray-50">
+                      <td className="px-5 py-3 font-semibold text-gray-900 sm:px-6">{phase.name}</td>
+                      <td className="px-4 py-3 text-gray-600">
+                        {phase.deliverables.length > 1 ? (
+                          <ul className="space-y-0.5">
+                            {phase.deliverables.map((del) => (
+                              <li key={del} className="flex items-start gap-1.5">
+                                <span className="mt-1.5 block h-1 w-1 shrink-0 rounded-full bg-slate-400" />
+                                {del}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <span>{phase.deliverables[0] ?? "—"}</span>
+                        )}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-right font-medium text-gray-900 sm:pr-6">{phase.duration}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        ) : null}
+
+        {/* ── References ───────────────────────────────────────────────── */}
         {refs.length > 0 ? (
-          <div className="border-t border-gray-200 bg-gray-50/80 px-5 py-6 sm:px-8">
+          <section className="rounded-xl border border-gray-200 bg-gray-50 px-5 py-5 shadow-sm sm:px-6">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
               References
             </h2>
@@ -273,9 +454,10 @@ export function ExperimentTabContent({ activeTab, results }: ExperimentTabConten
                 </li>
               ))}
             </ol>
-          </div>
+          </section>
         ) : null}
-      </article>
+
+      </div>
     );
   }
 

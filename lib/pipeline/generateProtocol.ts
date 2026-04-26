@@ -178,7 +178,8 @@ export async function generateSingleProtocol(
   planItem: ProtocolPlanItem,
   rules: ProtocolRulesPayload,
   example: ProtocolExamplePayload,
-  log: PipelineLogFn
+  log: PipelineLogFn,
+  appliedFixes: string[] = []
 ): Promise<LaboratoryProtocol> {
   const label = planItem.id;
   log("protocol_generation", "start", { plan_id: label, name: planItem.name });
@@ -186,7 +187,7 @@ export async function generateSingleProtocol(
   // Call 1: generate the full SOP structure.
   const raw = await completeJson(openai, {
     system: buildSingleProtocolSystemMessage(rules, example),
-    user: buildSingleProtocolUserMessage(hypothesis, analysis, planItem),
+    user: buildSingleProtocolUserMessage(hypothesis, analysis, planItem, appliedFixes),
     max_tokens: 6000,
     model: "gpt-4o-mini",
   });

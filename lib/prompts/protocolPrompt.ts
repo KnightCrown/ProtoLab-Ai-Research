@@ -70,8 +70,15 @@ Return one JSON object with keys: id, title, objective, materials, procedure, an
 export function buildSingleProtocolUserMessage(
   hypothesis: string,
   analysis: HypothesisAnalysis,
-  plan: ProtocolPlanItem
+  plan: ProtocolPlanItem,
+  appliedFixes: string[] = []
 ) {
+  const fixesBlock = appliedFixes.length
+    ? `\nAPPLY THESE CORRECTIONS BASED ON PRIOR FEEDBACK (recurring weaknesses in past runs):\n${appliedFixes
+        .map((f) => `- ${f}`)
+        .join("\n")}\n`
+    : "";
+
   return `HYPOTHESIS (full study context):
 ${hypothesis}
 
@@ -82,7 +89,7 @@ THIS PLANNED PROTOCOL (write the full SOP for **only** this one):
 - **id (fixed):** ${plan.id}
 - **name:** ${plan.name}
 - **description:** ${plan.description}
-
+${fixesBlock}
 The **id** field in your JSON must equal "${plan.id}".
 **title** in JSON should match this planned name (verbatim except minor copy-edits): **${plan.name}**
 The SOP is only this procedure; the title is the cover-page name.`;
