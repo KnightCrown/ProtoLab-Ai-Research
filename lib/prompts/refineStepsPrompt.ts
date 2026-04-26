@@ -1,5 +1,15 @@
 import type { HypothesisAnalysis, LaboratoryProtocol, ProcedureStep, ProtocolPlanItem } from "@/lib/pipeline/types";
 
+/**
+ * System prompt for the step-refinement stage.
+ *
+ * Ten rules cover every axis of quality: action verbs, numerical specificity,
+ * full sentences, tool / method naming, quality clauses, conciseness, explicit
+ * units, actionability, purpose clauses, and step_number preservation.
+ *
+ * The model is asked to return only JSON so the response can be parsed
+ * deterministically without stripping markdown fences.
+ */
 export const REFINE_STEPS_SYSTEM = `You are a laboratory SOP editor. Rewrite raw procedure steps into precise, executable laboratory instructions.
 
 ## Transformation rules
@@ -28,7 +38,13 @@ export const REFINE_STEPS_SYSTEM = `You are a laboratory SOP editor. Rewrite raw
 ## Output
 Return only JSON: { "refined_steps": [ { "step_number": number, "text": string }, ... ] }`;
 
-/** Compact serialisation of a raw step for the model to work from. */
+/**
+ * Compact, flat serialisation of all structured fields on a raw ProcedureStep.
+ *
+ * This gives the model the full information budget to work from — existing text,
+ * action, inputs, quantities, conditions, output, observation — without sending
+ * the entire JSON tree, which would waste tokens on punctuation/nesting.
+ */
 function serializeRawStep(s: ProcedureStep): string {
   const parts: string[] = [];
   if (s.text?.trim()) parts.push(`text: ${s.text.trim()}`);
@@ -50,6 +66,13 @@ function serializeRawStep(s: ProcedureStep): string {
   return parts.join(" | ");
 }
 
+/**
+ * Build the user message for the refinement call.
+ *
+ * Includes the protocol title, objective, and plan description so the model
+ * has enough domain context to infer missing numerical parameters rather than
+ * defaulting to generic placeholders.
+ */
 export function buildRefineStepsUser(
   protocol: LaboratoryProtocol,
   hypothesis: string,

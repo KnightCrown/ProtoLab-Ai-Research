@@ -159,6 +159,18 @@ function parseSingleProtocol(
   return proto;
 }
 
+/**
+ * Generate and refine a single laboratory SOP for one planned procedure.
+ *
+ * Two sequential LLM calls are made:
+ *   1. Protocol generation — produces the full SOP structure (title, objective,
+ *      materials, procedure, notes) from the rulebook + example + plan context.
+ *   2. Step refinement — rewrites every procedure step's `text` field into a
+ *      complete, executable Methods-section sentence (see refineProtocolSteps).
+ *
+ * This function is called concurrently for every plan item via mapConcurrent,
+ * so both LLM calls for all protocols overlap in parallel.
+ */
 export async function generateSingleProtocol(
   openai: OpenAI,
   hypothesis: string,
@@ -171,6 +183,7 @@ export async function generateSingleProtocol(
   const label = planItem.id;
   log("protocol_generation", "start", { plan_id: label, name: planItem.name });
 
+  // Call 1: generate the full SOP structure.
   const raw = await completeJson(openai, {
     system: buildSingleProtocolSystemMessage(rules, example),
     user: buildSingleProtocolUserMessage(hypothesis, analysis, planItem),
@@ -179,6 +192,8 @@ export async function generateSingleProtocol(
   });
 
   const proto = parseSingleProtocol(raw as Record<string, unknown>, planItem);
+
+  // Guard: a protocol with fewer than 3 substantive steps is not usable.
   if (countLeafSteps([proto]) < 3) {
     throw new Error(
       `Protocol "${proto.title}": procedure needs at least 3 leaf steps (or equivalent nested steps)`
@@ -186,7 +201,7 @@ export async function generateSingleProtocol(
   }
   log("protocol_generation", "complete", { plan_id: label, leaves: countLeafSteps([proto]) });
 
-  // Refine raw steps into precise, executable Methods-section sentences.
+  // Call 2: rewrite raw step text into precise, executable Methods-section sentences.
   const refined = await refineProtocolSteps(openai, { ...proto, id: planItem.id }, hypothesis, analysis, planItem, log);
   return refined;
 }
