@@ -6,6 +6,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { ResearchTabs } from "@/components/navigation/ResearchTabs";
 import { ExperimentTabContent } from "@/components/tabs/ExperimentTabContent";
 import type { Experiment } from "@/lib/experimentModel";
+import { exportExperimentToPdf } from "@/lib/exportExperimentPdf";
 import { mapPlanToResults } from "@/lib/mapPlanToResults";
 import type { PipelineResult } from "@/lib/pipeline/types";
 import { navItems, TabId } from "@/lib/mockData";
@@ -95,6 +96,19 @@ export default function Home() {
     );
   };
 
+  const handleExportPdf = () => {
+    if (selected == null || !selected.results) return;
+    try {
+      exportExperimentToPdf({
+        name: selected.name,
+        hypothesis: selected.hypothesis,
+        results: selected.results,
+      });
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const handleGenerate = async () => {
     if (selectedIdResolved == null) return;
     setAnalysisError(null);
@@ -175,7 +189,22 @@ export default function Home() {
               errorMessage={analysisError}
             />
 
-            <ResearchTabs tabs={navItems} activeTab={activeTab} onChange={setActiveTab} />
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch sm:justify-between sm:gap-4">
+              <div className="min-w-0 flex-1">
+                <ResearchTabs tabs={navItems} activeTab={activeTab} onChange={setActiveTab} />
+              </div>
+              {selected?.results ? (
+                <div className="flex shrink-0 sm:items-start">
+                  <button
+                    type="button"
+                    onClick={handleExportPdf}
+                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-800 shadow-sm transition hover:border-gray-400 hover:bg-gray-50 sm:w-auto"
+                  >
+                    Export report as PDF
+                  </button>
+                </div>
+              ) : null}
+            </div>
 
             <ExperimentTabContent activeTab={activeTab} results={selected?.results ?? null} />
           </div>

@@ -4,6 +4,12 @@ import { useState } from "react";
 import { Card } from "@/components/common/Card";
 import { DataTable } from "@/components/common/DataTable";
 import type { ExperimentResults } from "@/lib/experimentModel";
+import {
+  displayTextForSystemImprovement,
+  pickDiverseSystemImprovements,
+  systemImprovementBadgeCount,
+  MAX_SHOWN,
+} from "@/lib/feedback/systemImprovementDisplay";
 import type { TabId } from "@/lib/mockData";
 import { procedureStepToNarrative } from "@/lib/procedureNarrative";
 import type { LaboratoryProtocol, ProcedureStep } from "@/lib/pipeline/types";
@@ -90,7 +96,7 @@ function ProcedureStepBlock({ step, depth = 0 }: { step: ProcedureStep; depth?: 
 }
 
 function CollapsibleProtocol({ p, headerName }: { p: LaboratoryProtocol; headerName?: string }) {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   const heading = (headerName && headerName.trim()) || p.title;
   return (
     <section
@@ -159,6 +165,14 @@ function CollapsibleProtocol({ p, headerName }: { p: LaboratoryProtocol; headerN
 }
 
 export function ExperimentTabContent({ activeTab, results }: ExperimentTabContentProps) {
+  /** Dismissed until `appliedRules` changes to a new fingerprint (e.g. new run). */
+  const [dismissedAppliedRulesKey, setDismissedAppliedRulesKey] = useState<string | null>(null);
+  const appliedRulesKey = (results?.appliedRules ?? [])
+    .map((r) => `${r.type}:${r.fix}`)
+    .join("\u0000");
+  const showSystemImprovements =
+    (results?.appliedRules?.length ?? 0) > 0 && appliedRulesKey !== dismissedAppliedRulesKey;
+
   if (activeTab === "trust" && !results) {
     return (
       <div className="rounded-xl border border-dashed border-gray-300 bg-white p-10 text-center shadow-sm">
@@ -185,6 +199,8 @@ export function ExperimentTabContent({ activeTab, results }: ExperimentTabConten
     const phases = results.timelinePhases ?? [];
     const totalDuration = results.timelineTotalDuration;
     const appliedRules = results.appliedRules ?? [];
+    const rulesShown = pickDiverseSystemImprovements(appliedRules, MAX_SHOWN);
+    const improvementBadge = systemImprovementBadgeCount(appliedRules.length);
 
     return (
       <div className="w-full space-y-4">
@@ -237,24 +253,40 @@ export function ExperimentTabContent({ activeTab, results }: ExperimentTabConten
         </div>
 
         {/* ── System improvements applied (iterative learning) ────────── */}
-        {appliedRules.length > 0 ? (
-          <section className="rounded-xl border border-indigo-200 bg-indigo-50/60 px-5 py-4 shadow-sm sm:px-6">
-            <div className="flex items-center gap-2">
+        {showSystemImprovements ? (
+          <section className="relative rounded-xl border border-indigo-200 bg-indigo-50/60 px-5 py-4 pr-12 shadow-sm sm:px-6 sm:pr-14">
+            <button
+              type="button"
+              onClick={() => setDismissedAppliedRulesKey(appliedRulesKey)}
+              className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-lg text-lg leading-none text-indigo-800 transition hover:bg-indigo-200/50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              aria-label="Close system improvements"
+            >
+              ×
+            </button>
+            <div className="flex items-center gap-2 pr-1">
               <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-indigo-600 text-[10px] font-bold text-white">
                 ✓
               </span>
               <h2 className="text-xs font-semibold uppercase tracking-wider text-indigo-900">
                 System improvements applied
               </h2>
-              <span className="ml-1 rounded-full bg-indigo-200/70 px-2 py-0.5 text-[10px] font-semibold text-indigo-900">
-                {appliedRules.length}
+              <span className="ml-1 inline-flex items-center gap-1.5">
+                <span className="rounded-full bg-indigo-200/70 px-2 py-0.5 text-[10px] font-semibold text-indigo-900">
+                  {improvementBadge}
+                </span>
+                {appliedRules.length > MAX_SHOWN ? (
+                  <span className="text-[10px] font-medium text-indigo-800/80">
+                    ({appliedRules.length} total)
+                  </span>
+                ) : null}
               </span>
             </div>
             <p className="mt-1 text-xs text-indigo-900/70">
-              Corrections learned from prior runs were applied to this generation.
+              High-level guidance from past runs (up to {MAX_SHOWN} focus areas, varied by category
+              when possible). Full rule set is still used in generation.
             </p>
             <ul className="mt-3 grid gap-1.5 sm:grid-cols-2">
-              {appliedRules.map((r, i) => (
+              {rulesShown.map((r, i) => (
                 <li
                   key={`${r.type}-${i}`}
                   className="flex items-start gap-2 rounded-md bg-white/70 px-2.5 py-1.5 text-xs text-indigo-900 ring-1 ring-indigo-100"
@@ -262,7 +294,7 @@ export function ExperimentTabContent({ activeTab, results }: ExperimentTabConten
                   <span className="mt-0.5 inline-flex shrink-0 rounded bg-indigo-600/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-indigo-700">
                     {r.type}
                   </span>
-                  <span className="leading-snug">{r.fix}</span>
+                  <span className="leading-snug">{displayTextForSystemImprovement(r)}</span>
                 </li>
               ))}
             </ul>
@@ -541,44 +573,67 @@ export function ExperimentTabContent({ activeTab, results }: ExperimentTabConten
         </Card>
         {results.materialsDetail && results.materialsDetail.length > 0 ? (
           <Card title="Sourcing">
-            <ul className="space-y-3 text-sm text-gray-700">
-              {results.materialsDetail.map((m) => (
-                <li key={m.name + m.sourceUrl} className="border-b border-gray-100 pb-2 last:border-0">
-                  <p className="font-medium text-gray-900">{m.productName || m.name}</p>
-                  <p className="text-xs text-gray-500">{m.spec}</p>
-                  <p className="text-xs">Supplier: {m.supplier}</p>
-                  <div className="mt-0.5 flex items-center gap-1.5">
-                    <span className="text-xs">Price: {m.price}</span>
-                    {m.priceGrounded ? (
-                      <span
-                        title="Price extracted from a live search result"
-                        className="inline-flex items-center rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20"
-                      >
-                        verified
-                      </span>
-                    ) : (
-                      <span
-                        title="No price found in search results — this is a market estimate"
-                        className="inline-flex items-center rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 ring-1 ring-inset ring-amber-600/20"
-                      >
-                        estimated
-                      </span>
-                    )}
-                  </div>
-                  {m.sourceUrl && m.sourceUrl !== "#" ? (
-                    <a
-                      href={m.sourceUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="mt-0.5 block text-xs text-blue-700 underline"
-                    >
-                      Source ↗
-                    </a>
-                  ) : (
-                    <span className="mt-0.5 block text-xs text-gray-400">No source URL</span>
-                  )}
-                </li>
-              ))}
+            <ul className="space-y-4 text-sm text-gray-700">
+              {results.materialsDetail.map((m) => {
+                const hasSource = m.sourceUrl && m.sourceUrl !== "#";
+                const priceMissing = m.price === "Price unavailable";
+                return (
+                  <li
+                    key={m.name + m.sourceUrl}
+                    className="border-b border-gray-100 pb-4 last:border-0"
+                  >
+                    <p className="font-medium text-gray-900">{m.productName || m.name}</p>
+                    <p className="text-xs text-gray-500">{m.spec}</p>
+                    <p className="text-xs">Supplier: {m.supplier}</p>
+                    <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-3">
+                      <div className="min-w-0 flex flex-wrap items-center gap-1.5">
+                        <span className="text-xs">Price: {m.price}</span>
+                        {m.priceGrounded && !priceMissing ? (
+                          <span
+                            title="Price extracted from a live search result"
+                            className="inline-flex items-center rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20"
+                          >
+                            verified
+                          </span>
+                        ) : !priceMissing ? (
+                          <span
+                            title="No price in search — shown value is a market estimate when present"
+                            className="inline-flex items-center rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 ring-1 ring-inset ring-amber-600/20"
+                          >
+                            estimated
+                          </span>
+                        ) : (
+                          <span
+                            title="No reliable price in search results"
+                            className="inline-flex items-center rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-600 ring-1 ring-inset ring-gray-300/80"
+                          >
+                            unavailable
+                          </span>
+                        )}
+                      </div>
+                      {hasSource ? (
+                        <a
+                          href={m.sourceUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex shrink-0 self-end sm:self-auto rounded-md bg-gray-900 px-3 py-1.5 text-center text-xs font-semibold text-white transition hover:bg-gray-800 sm:ml-auto"
+                        >
+                          Buy now
+                        </a>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled
+                          title="No product link in search results"
+                          className="inline-flex shrink-0 cursor-not-allowed self-end sm:self-auto rounded-md border border-gray-200 bg-gray-50 px-3 py-1.5 text-center text-xs font-medium text-gray-400 sm:ml-auto"
+                        >
+                          Buy now
+                        </button>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           </Card>
         ) : null}
@@ -611,6 +666,8 @@ export function ExperimentTabContent({ activeTab, results }: ExperimentTabConten
     const phases = results.timelinePhases ?? [];
     const sp = results.staffingPlan;
     const deps = results.timelineDependencies ?? [];
+    const perProto = results.protocolDurations ?? [];
+    const dConstraints = results.durationConstraints ?? [];
 
     /** Derive a sensible personnel string for a phase based on its name. */
     function phasePersonnel(phaseName: string): string {
@@ -637,6 +694,40 @@ export function ExperimentTabContent({ activeTab, results }: ExperimentTabConten
               </p>
             ) : null}
           </div>
+
+          {perProto.length > 0 ? (
+            <div className="border-b border-gray-200 px-5 py-4 sm:px-8">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500">Per-protocol duration</h3>
+              <div className="mt-2 overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-100 text-left text-xs text-gray-500">
+                      <th className="py-2 pr-3 font-medium">SOP</th>
+                      <th className="py-2 pl-2 text-right font-medium">Span</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {perProto.map((row) => (
+                      <tr key={row.id} className="text-gray-800">
+                        <td className="py-2 pr-2 font-medium">{row.name}</td>
+                        <td className="py-2 pl-2 text-right tabular-nums">{row.duration}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : null}
+          {dConstraints.length > 0 ? (
+            <div className="border-b border-slate-100 bg-slate-50/50 px-5 py-3 sm:px-8">
+              <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">Duration grounding</p>
+              <ul className="mt-2 list-disc space-y-1 pl-4 text-sm text-gray-600">
+                {dConstraints.map((c, i) => (
+                  <li key={`dc-${i}`}>{c}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
 
           {phases.length === 0 ? (
             <p className="px-5 py-4 text-sm text-gray-500">No phase data available.</p>

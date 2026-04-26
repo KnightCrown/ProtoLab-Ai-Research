@@ -135,12 +135,23 @@ export type TimelinePhase = {
   deliverables: string[];
 };
 
+/** One planned SOP's wall-clock span (from timeline generation, grounded in web + steps). */
+export type ProtocolDurationEstimate = {
+  id: string;
+  name: string;
+  duration: string;
+};
+
 export type TimelinePlan = {
   steps_timeline: StepTimeline[];
   phases: TimelinePhase[];
   total_duration: string;
   dependencies: string[];
   web_duration_note?: string;
+  /** One duration per generated protocol — never substitute post-processing. */
+  protocol_durations: ProtocolDurationEstimate[];
+  /** Timing bullets derived from the Tavily pass + model judgment (for UI / trust context). */
+  duration_constraints: string[];
 };
 
 export type StaffingPlan = {

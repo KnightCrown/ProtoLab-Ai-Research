@@ -62,6 +62,10 @@ export type ExperimentResults = {
   timelineTotalDuration?: string;
   timelineDependencies?: string[];
   timelineWebNote?: string;
+  /** One wall-clock range per SOP, from the fast Tavily+LLM timeline pass */
+  protocolDurations?: { id: string; name: string; duration: string }[];
+  /** Grounding bullets from web research (timing norms) */
+  durationConstraints?: string[];
   validation?: ValidationPlan;
   staffing?: { role: string; hours: number }[];
   staffingPlan?: StaffingPlan;

@@ -113,6 +113,8 @@ export function mapPlanToResults(plan: PipelineResult): ExperimentResults {
     timelineTotalDuration: t.total_duration,
     timelineDependencies: t.dependencies,
     timelineWebNote: t.web_duration_note,
+    protocolDurations: t.protocol_durations,
+    durationConstraints: t.duration_constraints,
     validation: plan.validation,
     trustScore: plan.trust_score,
     staffingPlan: staff,

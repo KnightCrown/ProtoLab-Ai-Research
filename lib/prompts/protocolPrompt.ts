@@ -41,9 +41,21 @@ const WRITING_DIRECTIVES = `## Writing directives (highest priority)
 
 3. For mechanical work (placement, contact): end with a short quality clause if relevant (*ensuring firm, stable contact with the paper surface*).
 
-4. This JSON documents **one** procedure. Self-contained. **Notes** = formulas/acceptance only.
+4. **Time-awareness — author durations the way a real bench scientist would:**
+   - Whenever a step implies a wait, incubation, growth, fixation, hybridisation, transformation, blocking, antibody binding, or curing, populate \`conditions.time\` with a realistic, concrete duration and reflect it in \`text\`.
+   - Do **not** compress multi-day processes into hours. Examples of expected ranges:
+     - Cell/bacterial/yeast growth: 24–72 h minimum from seeding to usable density.
+     - Mammalian primary cultures, transfection recovery: typically 24–48 h.
+     - Antibody incubations: 30–60 min minimum at RT, or 4 °C overnight (~12–16 h).
+     - Blocking / hybridisation: 1–2 h at RT or overnight at 4 °C.
+     - Buffer prep, calibration, labelling for multi-sample runs: hours, not minutes.
+     - Data analysis, image processing, stats, figure prep: hours-to-days.
+   - Waiting periods are real lab time — write them as their own steps with \`conditions.time\` set, not as throwaway clauses inside an unrelated step.
+   - Prefer **conservative (longer)** estimates over unrealistically short ones when the duration is ambiguous.
 
-5. **id** in JSON must match the plan. ${SINGLE_SCHEMA}
+5. This JSON documents **one** procedure. Self-contained. **Notes** = formulas/acceptance only.
+
+6. **id** in JSON must match the plan. ${SINGLE_SCHEMA}
 
 **Field priority — the UI uses \`text\` for display; write it as the final protocol prose.**`;
 

@@ -11,7 +11,7 @@
  *   "$1,250"            → "$1,250.00"
  *   "~$89.99"           → "$89.99"
  *   "€45.00"            → "$45.00"   (foreign symbol → $ for display consistency)
- *   "Not found…"        → left unchanged
+ *   "Not found…"        → "Price unavailable" (for UI)
  *   "TBD"              → left unchanged
  */
 
@@ -24,8 +24,13 @@ const FIRST_NUMBER = /[$€£¥]?\s*(\d[\d,]*(?:\.\d+)?)/;
 export function formatPrice(raw: string): string {
   const s = raw.trim();
 
-  // Pass through non-price strings unchanged.
-  if (!s || /^(tbd|not found|n\/a|unknown|-+)$/i.test(s)) return s;
+  if (!s) return s;
+  // Explicit missing-price tokens from search/LLM — user-facing copy
+  if (/^(not found|n\/a|unknown)$/i.test(s)) return "Price unavailable";
+  if (/-+/i.test(s) && s.length < 4) return s;
+  if (/^tbd$/i.test(s)) return s;
+  // “Not found in search results” etc. with no parseable number
+  if (/not found/i.test(s) && !/\$?\d/.test(s)) return "Price unavailable";
   // If it contains no digit at all it can't be a price.
   if (!/\d/.test(s)) return s;
 
