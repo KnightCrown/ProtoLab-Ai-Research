@@ -22,7 +22,7 @@ export function InputSection({
 
   return (
     <section
-      className={`rounded-xl border border-[#d6d2c1] bg-[#fffdf6] p-6 shadow-sm ${
+      className={`rounded-xl border border-[#d6d2c1] bg-[#fffdf6] p-4 shadow-sm sm:p-6 ${
         effectiveDisabled && !busy ? "opacity-60" : ""
       }`}
     >
@@ -63,7 +63,7 @@ export function InputSection({
             void onGenerate();
           }}
           disabled={effectiveDisabled}
-          className="rounded-lg bg-[#7f8572] px-4 py-2 text-sm font-medium text-[#f8f7f1] transition enabled:hover:bg-[#707761] disabled:cursor-not-allowed disabled:bg-[#bdb9a8]"
+          className="w-full rounded-lg bg-[#7f8572] px-4 py-2.5 text-sm font-medium text-[#f8f7f1] transition enabled:hover:bg-[#707761] disabled:cursor-not-allowed disabled:bg-[#bdb9a8] sm:w-auto sm:py-2"
         >
           {busy ? "Working…" : "Generate Experiment Plan"}
         </button>

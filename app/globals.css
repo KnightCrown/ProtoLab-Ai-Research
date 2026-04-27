@@ -21,3 +21,15 @@ body {
 * {
   border-color: #d8d4c5;
 }
+
+/* ── Sidebar drawer animation (mobile only) ─────────────────────────────── */
+/* The sidebar is rendered conditionally via React (isMobile state).         */
+/* When shown on mobile as a fixed overlay, it animates in from the left.    */
+.sidebar-drawer-enter {
+  animation: sidebar-slide-in 0.25s ease-out both;
+}
+
+@keyframes sidebar-slide-in {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(0); }
+}

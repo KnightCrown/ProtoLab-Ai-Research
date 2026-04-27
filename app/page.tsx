@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { InputSection } from "@/components/input/InputSection";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { ResearchTabs } from "@/components/navigation/ResearchTabs";
@@ -52,6 +52,21 @@ export default function Home() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [loadingPhase, setLoadingPhase] = useState(0);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // True when viewport < 768px (md breakpoint). Starts false to avoid layout
+  // shift on desktop during hydration; useEffect corrects it immediately.
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    setIsMobile(mq.matches);
+    const handler = (e: MediaQueryListEvent) => {
+      setIsMobile(e.matches);
+      if (!e.matches) setSidebarOpen(false);
+    };
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
 
   const selectedIdResolved = useMemo(() => {
     if (experiments.length === 0) return null;
@@ -164,24 +179,87 @@ export default function Home() {
   };
 
   return (
-    <div className="flex h-screen bg-[#f6f2e6] text-[#3f4539]">
-      <Sidebar
-        experiments={experiments}
-        selectedExperimentId={selectedIdResolved}
-        onNewExperiment={handleNewExperiment}
-        onSelectExperiment={handleSelectExperiment}
-      />
+    <div className="flex h-screen overflow-hidden bg-[#f6f2e6] text-[#3f4539]">
+      {/* Mobile backdrop overlay */}
+      {isMobile && sidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/30"
+          aria-hidden="true"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
 
-      <main className="flex min-h-0 flex-1 flex-col overflow-y-auto px-8 py-8">
+      {/* Sidebar: always visible on desktop; drawer on mobile */}
+      {(!isMobile || sidebarOpen) && (
+        <Sidebar
+          experiments={experiments}
+          selectedExperimentId={selectedIdResolved}
+          onNewExperiment={() => {
+            handleNewExperiment();
+            if (isMobile) setSidebarOpen(false);
+          }}
+          onSelectExperiment={handleSelectExperiment}
+          isOpen={sidebarOpen}
+          isMobile={isMobile}
+          onClose={() => setSidebarOpen(false)}
+        />
+      )}
+
+      <main className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 py-4 sm:px-6 md:px-8 md:py-8">
+        {/* Mobile top bar */}
+        {isMobile && (
+          <div className="mb-4 flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setSidebarOpen(true)}
+              aria-label="Open menu"
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#d9d4c3] bg-[#f3efe3] text-[#676e60] transition hover:bg-[#efebdd]"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="18" x2="21" y2="18" />
+              </svg>
+            </button>
+            <span className="text-base font-semibold tracking-tight text-[#4a5143]">ProtoLab AI</span>
+          </div>
+        )}
+
         {!hasExperiments ? (
           <div className="flex flex-1 items-center justify-center">
-            <div className="max-w-md text-center">
+            <div className="max-w-md px-4 text-center">
               <p className="text-lg font-medium text-[#485041]">Create a new experiment to begin</p>
-              <p className="mt-2 text-sm text-[#7e846f]">Use the sidebar to add your first experiment.</p>
+              <p className="mt-2 text-sm text-[#7e846f]">
+                {isMobile ? (
+                  <>
+                    Tap the{" "}
+                    <button
+                      type="button"
+                      onClick={() => setSidebarOpen(true)}
+                      className="underline decoration-dotted underline-offset-2 hover:text-[#4a5143]"
+                    >
+                      menu
+                    </button>{" "}
+                    to add your first experiment.
+                  </>
+                ) : (
+                  "Use the sidebar to add your first experiment."
+                )}
+              </p>
             </div>
           </div>
         ) : (
-          <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6">
+          <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 sm:gap-6">
             <InputSection
               hypothesis={selected?.hypothesis ?? ""}
               onHypothesisChange={handleHypothesisChange}
